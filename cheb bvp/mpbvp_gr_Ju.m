@@ -28,7 +28,7 @@ JTh = zeros(M,N);       % event condition Jacobian evaluations wrt Ti
 
 % Function definitions
 tau = feval(sys.tau,p,1); % point time delays
-h_ej = @(j,x,xd) feval(sys.e,x,xd,p,orb.sig(j),1);  % event condition at ej
+h_ej = @(j,x,xd) feval(sys.e,x,xd,p,orb.sig(j),1,0);  % event condition at ej
 Jh_ej = @(j,x,xd,i) feval(sys.e,x,xd,p,orb.sig(j),2,i); % event condition at ej
 
 

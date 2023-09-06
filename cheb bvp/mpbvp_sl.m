@@ -31,8 +31,8 @@ u_sl = x0(:,sl_ind*M);     % state at sliding event
 ud_sl = squeeze(x0_tau(:,:,sl_ind*M));
 
 % Evaluate relevant vector fields and event conditions
-f_in = feval(sys.f,u_sl,ud_sl,p,m_in,1);  % vector field before event
-f_out = feval(sys.f,u_sl,ud_sl,p,m_out,1); % vector field after event
+f_in = feval(sys.f,u_sl,ud_sl,p,m_in,1,0);  % vector field before event
+f_out = feval(sys.f,u_sl,ud_sl,p,m_out,1,0); % vector field after event
 dh = feval(sys.e,u_sl,ud_sl,p,orb.sig(sl_ind),2,0); % event surface jacobian
 
 % Check sliding condition

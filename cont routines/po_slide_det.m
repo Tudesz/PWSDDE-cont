@@ -34,7 +34,7 @@ Ti0 = y0(end-N-lp+1:end-lp);
 % Function definitions
 tau = feval(sys.tau,p0,1); % point time delays
 pi_ej = @(j,i) feval(sys.e,[],[],[],orb.sig(j),7,i);    % incoming and outgoing modes at events
-f_mj = @(mj,x,xd) feval(sys.f,x,xd,p0,mj,1);    % vector field in mode mj
+f_mj = @(mj,x,xd) feval(sys.f,x,xd,p0,mj,1,0);    % vector field in mode mj
 Jh_ej = @(j,x,xd) feval(sys.e,x,xd,p0,orb.sig(j),2,0);  % event condition jacobian at ej
 
 % Evaluate current and delayed terms

@@ -198,6 +198,18 @@ for i = 2:np+1
     branch(i).mu = eig(Th(y1(1:end-lp),branch(i).p));
     [~,muc_i] = max(abs(branch(i).mu));
     branch(i).mu_crit = branch(i).mu(muc_i);
+
+    % Warn in case of negative segment lengths
+    if any(branch(i).T<0,'all')
+        warning('Negative segment length encountered at step %i',i);
+        % break
+    end
+
+    % Warn in case of nonconvergent solutions
+    if branch(i).error>1e2*opts.nr.abstol
+        warning('Solution in br12_cont did not converge at step %i',i);
+        % break
+    end
     
     % Check for grazing events
     if nargin<4
@@ -251,12 +263,6 @@ for i = 2:np+1
         % Stop continuation if neccessary
         fprintf('   -> Vanishing segment detected at step %i\n',i);
         break
-    end
-        
-    % Warn in case of nonconvergent solutions
-    if branch(i).error>1e2*opts.nr.abstol
-        warning('Solution in br12_cont did not converge at step %i',i);
-      % break
     end
         
     % Update last solution point

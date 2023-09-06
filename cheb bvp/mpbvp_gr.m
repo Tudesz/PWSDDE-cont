@@ -22,7 +22,7 @@ h = zeros(M,1);         % event condition evaluations
 
 % Function definitions
 tau = feval(sys.tau,p,1); % point time delays
-h_ej = @(j,x,xd) feval(sys.e,x,xd,p,orb.sig(j),1);  % event condition at ej
+h_ej = @(j,x,xd) feval(sys.e,x,xd,p,orb.sig(j),1,0);  % event condition at ej
 
 % Evaluate current and delayed terms
 [~,us] = bvp2sig(U,T,M); % signal form of state vector

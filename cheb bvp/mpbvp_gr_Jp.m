@@ -31,7 +31,7 @@ D0 = cheb_diff(M);      % base differentiation matrix
 % Function definitions
 tau = feval(sys.tau,p,1); % point time delays
 dtau = feval(sys.tau,p,2); % derivatives of point time delays
-Jhp_ej = @(j,x,xd) feval(sys.e,x,xd,p,orb.sig(j),3);  % event condition at ej
+Jhp_ej = @(j,x,xd) feval(sys.e,x,xd,p,orb.sig(j),3,0);  % event condition at ej
 Jh_ej = @(j,x,xd,i) feval(sys.e,x,xd,p,orb.sig(j),2,i);  % event condition at ej
 
 

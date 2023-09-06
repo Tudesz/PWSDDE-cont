@@ -27,10 +27,10 @@ D = zeros(M*N*n);       % full differentiation matrix
 
 % Function definitions
 tau = feval(sys.tau,p,1); % point time delays
-pi_ej = @(ej) feval(sys.e,[],[],[],orb.sig(ej),7,1);    % incoming modes at events
-f_mj = @(mj,x,xd) feval(sys.f,x,xd,p,mj,1);         % vector field in mode mj
-h_ej = @(j,x,xd) feval(sys.e,x,xd,p,orb.sig(j),1);  % event condition at ej
-g_ej = @(j,x,xd) feval(sys.e,x,xd,p,orb.sig(j),4);  % jump map at ej
+pi_ej = @(ej) feval(sys.e,[],[],[],orb.sig(ej),7,1);  % incoming modes at events
+f_mj = @(mj,x,xd) feval(sys.f,x,xd,p,mj,1,0);         % vector field in mode mj
+h_ej = @(j,x,xd) feval(sys.e,x,xd,p,orb.sig(j),1,0);  % event condition at ej
+g_ej = @(j,x,xd) feval(sys.e,x,xd,p,orb.sig(j),4,0);  % jump map at ej
 
 
 % Evaluate current and delayed terms

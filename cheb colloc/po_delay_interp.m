@@ -17,11 +17,6 @@ function [ud,id,fi,nd,dT] = po_delay_interp(u0,Ti,M,tau,res)
 %   dT: derivative of the querry point wrt Ti without looping around 
 %   (M*n*N x nt x N x n_tau)
 
-% Check for invalid input data
-if any(Ti<0,'all')
-    warning('Negative segment lengths encountered in po_delay_interp');
-end
-
 % Initialization
 nt = length(tau);   % number of delays
 N = length(Ti);     % number of segments

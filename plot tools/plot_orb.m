@@ -20,6 +20,9 @@ if nargin<2 || isempty(fs)
     plot(t1,x1); hold on
     plot(t0,x0,'k.');
     xlabel('$t$'); ylabel('$u$');
+    for i=1:length(orb.T)+1
+        xline(sum(orb.T(1:i-1)),':k');
+    end
 else
     [px0,py0] = feval(fs,t0,x0,orb.p);
     [px1,py1] = feval(fs,t1,x1,orb.p);
@@ -27,9 +30,7 @@ else
     plot(px0,py0,'k.');
     xlabel('$f_1(t,x)$'); ylabel('$f_2(t,x)$');
 end
-for i=1:length(orb.T)+1
-    xline(sum(orb.T(1:i-1)),':k');
-end
+
 hold off;
 box on;
 

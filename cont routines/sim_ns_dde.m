@@ -55,7 +55,7 @@ iter = 1; % iteration counter (safety switch)
 ti = zeros(opts.i_max,1); % starting times
 mi = zeros(opts.i_max,1); % vector field modes
 ei = zeros(opts.i_max,1); % encountered events
-n = size(y0(0),2);  % system dimension
+n = length(y0(0));  % system dimension
 mi(1) = opts.m0;    % starting vector field mode
 y_hist = @(t) history_func(t,y0(0),y0,[],ti);
 rt = tic;
@@ -68,7 +68,7 @@ end
 fprintf('\nRun simulation routine for non-smooth DDEs\n')
 while ti(iter)<opts.t_end
     % Update solver data
-    ddefun = @(t,y,Z) feval(sys.f,y,Z,p,mi(iter),1);
+    ddefun = @(t,y,Z) feval(sys.f,y,Z,p,mi(iter),1,0);
     solver_opts = ddeset('Event',@(t,y,Z) ...
         event_func(y,Z,sys,p,mi(iter),opts.h_act));
     
@@ -143,7 +143,7 @@ function [value,isterminal,direction] = event_func(y,Z,sys,par,mode,h_act)
     value = ones(1,sys.event_no);
     for i = 1:sys.event_no
         if feval(sys.e,y,Z,par,i,7,1) == mode % only check currently active event surfaces
-            value(i) = feval(sys.e,y,Z,par,i,1); % detect zero crossings
+            value(i) = feval(sys.e,y,Z,par,i,1,0); % detect zero crossings
         end
     end
     isterminal = h_act; % terminate integration for allowed events

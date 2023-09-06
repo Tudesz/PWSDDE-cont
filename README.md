@@ -14,7 +14,7 @@ At first it is recommended to take a look at the three example continuation prob
 - To define a continuation problem the users are expected to provide all necessary functions and Jacobians as seen in the "#demo" folder.
 - Then a periodic orbit may be initialized using "sim_ns_dde.m" or manually, by providing the required fields.
 - Periodic orbits can be corrected via Newton iteration using "orb_corr.m".
-- Continuation of periodic orbits in on and two parameters are both done using "br12_cont.m".
+- Continuation of periodic orbits in one and two parameters are both done using "br12_cont.m".
 - "orb_convert.m" may be used to change the solution signature of orbits found at bifurcation points.
 - Finally a wide range of visualization options is available in the "plot tools" folder.
 

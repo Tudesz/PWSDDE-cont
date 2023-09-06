@@ -33,12 +33,12 @@ gr = false;             % no bifurcation by default
 int = [];               % no bifurcation type by default
 ind = [];               % no index by default
 M = orb.M;              % mesh resolution
-N = length(orb.sig);        % number of segments
+N = length(orb.sig);    % number of segments
 m = sys.event_no;       % number of contact surfaces
 
 % Function definitions
 tau = @(p) feval(sys.tau,p,1); % point time delays
-h_ej = @(j,x,xd,p) feval(sys.e,x,xd,p,j,1);  % event condition at ej
+h_ej = @(j,x,xd,p) feval(sys.e,x,xd,p,j,1,0);  % event condition at ej
 
 % Unpack solution vectors
 lp = length(opts.pi);

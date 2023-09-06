@@ -39,7 +39,7 @@ T = sum(Tj);
 
 % Function definitions
 tau = feval(sys.tau,p,1); % point time delays
-h_ej = @(j,x,xd) feval(sys.e,x,xd,p,j,1);  % event condition at ej
+h_ej = @(j,x,xd) feval(sys.e,x,xd,p,j,1,0);  % event condition at ej
 
 % Create higher resolution orbit for event search
 [ts,us] = bvp2sig([U; U],[Tj; Tj],M,ceil(res/(2*length(Tj)))); % signal form of state vector

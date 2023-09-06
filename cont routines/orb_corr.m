@@ -103,5 +103,10 @@ else
     orb_c.p(bifs.pi) = x1(end);
 end
 
+% Check for invalid output
+if any(orb_c.T<0,'all')
+    warning('Negative segment length encountered in orb_corr');
+end
+
 end
 
