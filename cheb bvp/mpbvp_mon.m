@@ -24,7 +24,7 @@ D0 = cheb_diff(M);      % base differentiation matrix
 jT = M*N*n+(1:N);       % indicies of T and h in the NAE
 
 % Function definitions
-tau = feval(sys.tau,orb.p,1); % point time delays
+tau = feval(sys.tau,p,1); % point time delays
 pi_ej = @(ej) feval(sys.e,[],[],[],orb.sig(ej),7,1);     % incoming modes at events
 Jf_mj = @(mj,x,xd,i) feval(sys.f,x,xd,p,mj,2,i);         % vector field Jacobian in mode mj
 Jh_ej = @(j,x,xd,i) feval(sys.e,x,xd,p,orb.sig(j),2,i);  % event condition at ej
