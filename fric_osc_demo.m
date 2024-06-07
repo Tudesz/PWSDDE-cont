@@ -96,15 +96,15 @@ cont_opts.psa.igr_stop = false; % dont stop at false interior grazing points
 
 % Continuation run 1)
 branch1 = br12_cont(orb1c,sys,cont_opts);
-% figure(); plot_br1_ampl(branch1,cont_opts.psa.pi,1,false);
-% figure(); plot_br1_norm(branch1,cont_opts.psa.pi,2);
+% figure(); plot_br1_ampl(branch1,2,1,false);
+% figure(); plot_br1_norm(branch1,2,2);
 % anim_br_orb(branch1,'p_fricosc','test.avi')
 
 % Continuation run 2)
 cont_opts.psa.ds = 0.5; % (positive direction)
 branch2 = br12_cont(orb1c,sys,cont_opts);
-% figure(); plot_br1_ampl(branch2,cont_opts.psa.pi,1,false);
-% figure(); plot_br1_norm(branch1,cont_opts.psa.pi,2);
+% figure(); plot_br1_ampl(branch2,2,1,false);
+% figure(); plot_br1_norm(branch1,2,2);
 % figure(); plot_orb(branch2(end));
 
 
@@ -124,7 +124,7 @@ orb2c = orb_corr(orb2,sys,corr_opts);
 % Continuation run 1)
 cont_opts.psa.ds = -0.5;
 branch_s1 = br12_cont(orb2c,sys,cont_opts);
-% figure(); plot_br1_ampl(branch_s1,cont_opts.psa.pi,1,false);
+% figure(); plot_br1_ampl(branch_s1,2,1,false);
 % figure(); plot_orb(branch_s1(end),'p_fricosc')
 
 % change solution signature to allow going further
@@ -137,7 +137,7 @@ orb3c = orb_corr(orb3,sys,corr_opts);
 % Continuation run 2)
 cont_opts.psa.ds = -1;
 branch_s2 = br12_cont(orb3c,sys,cont_opts);
-% figure(); plot_br1_ampl(branch_s2,cont_opts.psa.pi,1,false);
+% figure(); plot_br1_ampl(branch_s2,2,1,false);
 % figure(); plot_orb(branch_s2(end),'p_fricosc')
 
 
@@ -154,10 +154,10 @@ figure(); plot_orb(orb_slc,'p_fricosc'); title('Sliding orbit')
 % Follow sliding orbit in 2 parameters
 cont_opts.psa.sl_stop = false; % don't stop at trivial sliding events (due to simmetry)
 cont_opts.psa.ds = 0.5;
-cont_opts.psa.pi = [4,2]; % two continuation parameters 
+cont_opts.psa.pi = [4 2]; % two continuation parameters 
 % (switch parameter order for continuation in the opposite direction)
 branch_sl1 = br12_cont(orb_slc,sys,cont_opts,bifs);
-% figure(); plot_br2_par(branch_sl1,cont_opts.psa.pi,2)
+% figure(); plot_br2_par(branch_sl1,[4 2],2)
 % figure(); plot_orb(branch_sl1(end),'p_fricosc')
 
 

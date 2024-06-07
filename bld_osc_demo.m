@@ -65,7 +65,7 @@ y0 = @(t) [0 0 cos(p0(6)*t) sin(p0(6)*t)];  % initial history function
 o_init.N = 2;                   % number of events
 o_init.M = 20;                  % Chebyshev mesh dimension
 sim_opts.h_act = [1 1 0];       % active events during simulation
-sim_opts.m0 = 1;                % first event
+sim_opts.m0 = 1;                % starting mode of the simulation
 sim_opts.t_end = 50*2*pi/p0(6); % simulation time
 [orb0,res]= sim_ns_dde(y0,p0,sys,o_init,sim_opts);
 figure(); plot_res(res,1); title('Transient simulation result');
@@ -88,20 +88,20 @@ cont_opts.psa.np = 100;  % number of contination steps
 
 % Continuation run 1)
 branch1 = br12_cont(orb1,sys,cont_opts);
-% figure(); plot_br1_norm(branch1,cont_opts.psa.pi,2);
-% figure(); plot_br1_ampl(branch1,cont_opts.psa.pi,1);
+% figure(); plot_br1_norm(branch1,1,2);
+% figure(); plot_br1_ampl(branch1,1,1);
 % anim_br_orb(branch1,'p_bldosc','test.avi')
 
 % Continuation run 2)
 cont_opts.psa.pi = 2; % now in k
 branch2 = br12_cont(orb1,sys,cont_opts);
-% figure(); plot_br1_norm(branch2,cont_opts.psa.pi,2);
+% figure(); plot_br1_norm(branch2,2,2);
 % figure(); plot_orb(branch2(end),'p_bldosc');
 
 
 %% Follow a grazing event in 2 parameters
 
-% Initial Grazing point (converted to new solution signature) 
+% Initial Grazing point (converted to new solution signature)
 orb_gr = orb_convert(branch1(end),sys,0); % only 1 event at the end/beginning
 figure(); plot_orb(orb_gr,'p_bldosc'); title('Grazing orbit');
 
@@ -116,7 +116,7 @@ orb2 = orb_corr(orb_gr,sys,corr_opts,bifs);
 % Follow grazing orbit in 2 parameters
 cont_opts.psa.pi = [1 2]; % two continuation parameters
 branch_gr1 = br12_cont(orb2,sys,cont_opts,bifs);
-% figure(); plot_br2_par(branch_gr1,cont_opts.psa.pi,2)
+% figure(); plot_br2_par(branch_gr1,[1 2],2)
 
 
 %% Plot results

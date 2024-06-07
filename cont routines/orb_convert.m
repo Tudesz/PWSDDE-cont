@@ -61,10 +61,14 @@ end
 if length(guess) == 1 && guess ~=0
     figure('Name','Event selection');
     plot(ts,ev_tol); xlabel('$t$'); ylabel('$h_i$'); hold on 
-    yline(0,':k'); hold off
+    yline(0,':k'); hold off; ylim('padded');
     ev_in = ginput(guess);
     ev_t = ev_in(:,1);
-    disp(ev_t.');
+    fprintf('\nHand picked guess for event times: \n [')
+    for i=1:length(ev_t)-1
+        fprintf('%0.3f ',ev_t(i));
+    end
+    fprintf('%0.3f]\n',ev_t(end));
 elseif guess == 0
     ev_t = [0 T];
 else

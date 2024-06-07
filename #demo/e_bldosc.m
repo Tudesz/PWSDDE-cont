@@ -22,7 +22,8 @@ function X = e_bldosc(x,xd,p,id,type,l)
 % State variables
 %   x(1): x(t)
 %   x(2): x'(t)
-%   x(3): phi(t)
+%   x(3): cos(om*t)
+%   x(4): sin(om*t)
 
 % Sytem parameters
 %   p(1): tau
