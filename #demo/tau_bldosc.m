@@ -10,12 +10,12 @@ function X = tau_bldosc(p,type)
 %   X: appropriate evaluation of the delay or its parameter Jacobain
 
 % Sytem parameters
-%   p(1): zeta
-%   p(2): f0
-%   p(3): omega
-%   p(4): tau
-%   p(5): eta
-%   p(6): eta0
+%   p(1): tau
+%   p(2): k
+%   p(3): zeta
+%   p(4): beta
+%   p(5): f
+%   p(6): om
 
 switch type
     % Time delays
