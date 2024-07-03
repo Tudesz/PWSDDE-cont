@@ -1,5 +1,5 @@
 function plot_spectrum(mu)
-%PLOT_SPECTRUM Plot characteristic multipliers on Re-Im plane
+%PLOT_SPECTRUM Plot characteristic multipliers on the Re-Im plane
 % Input:
 %   mu: characteristic multipliters
 
