@@ -1,7 +1,7 @@
 clear; clc; close all;
 warning off backtrace
-%% COCO compatible continuation problem of 2 a DoF impact Duffing oscillator
-% considering harmonic excitation and asymetric air gaps
+%% Example continuation problem of 2 a DoF impact Duffing oscillator
+% considering harmonic excitation and asymmetric air gaps
 % equation of motion shown in "impduff_def.m"
 % using a nondimensionalized form and the old system definition structure
 
@@ -15,6 +15,7 @@ set(0,'DefaultAxesFontSize',12);
 set(0,'DefaultTextInterpreter','latex');
 set(0,'DefaultAxesTickLabelInterpreter','latex');
 set(0,'DefaultLegendInterpreter','latex');
+
 
 %% System definition
 addpath('_system def/two dof impact oscillator');
@@ -33,7 +34,7 @@ sim_opts.t_end = 150*pi/p0(1);  % simulation time
 sim_opts.h_act = [1 1 0 0];     % only normal events are active
 [orb0,res]= sim_ns_dde(y0,p0,sys,o_init,sim_opts);
 figure(); plot_res(res,1); title('Transient simulation result');
-% figure(); plot_orb(orb0,sys,'impduff_p'); title('Simulation guess');
+figure(); plot_orb(orb0,sys,'impduff_p'); title('Simulation guess');
 
 % initialize a second orbit
 p0(1) = 0.7; sim_opts.t_end = 150*pi/p0(1);
@@ -123,12 +124,10 @@ plot_br1_ampl(branch6,pind,1);
 hold off
 
 
-
-
 %% Recreate the first two branches with COCO
 % 
 % % Initialize COCO
-% addpath('C:\Users\Tudo\Documents\MATLAB\COCO');
+% addpath('<COCO_dir>'); % location of COCO installation
 % startup;
 % 
 % % define a COCO compatible problem

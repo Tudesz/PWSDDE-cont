@@ -23,8 +23,8 @@ function branch = br12_cont_fix(orb,sys,opts,bifs)
 %       during mondoromy matrix formulation (default true)
 %   opts: numerical method parameters
 %    -> pi: indicies of continuation parameters (length of 1 or 2)
-%    -> ds: arclength stepsize
-%    -> np: number of continuation steps
+%    -> ds: arclength stepsize (default 0.1)
+%    -> np: number of continuation steps (default 100)
 %    -> psa: pseudo-arclength method parameters (optional field)
 %      -> tgi_ds: initial step for obtaining a guess of the solution
 %           tangent (default 1e-5*ds0)
@@ -84,6 +84,12 @@ if ~isfield(opts,'nr') || ~isfield(opts.nr,'abstol')
 end
 
 % Pseudo arclength stepping options
+if ~isfield(opts,'np')
+    opts.np = 100; % default number of steps
+end
+if ~isfield(opts,'ds')
+    opts.ds = 0.1; % default stepsize
+end
 if ~isfield(opts,'psa')
     opts.psa = struct();
 end

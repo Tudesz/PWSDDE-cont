@@ -194,7 +194,7 @@ xlabel('$\omega$'); ylabel('$f_0$'); title('Continuation results')
 %% Recreate the continuation results using COCO
 % 
 % % Initialize COCO
-% addpath('C:\Users\Tudo\Documents\MATLAB\COCO');
+% addpath('<COCO_dir>'); % location of COCO installation
 % startup;
 % 
 % % define a COCO compatible problem

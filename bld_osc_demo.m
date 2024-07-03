@@ -143,11 +143,11 @@ plot_br2_par(branch_gr1,pind); hold off
 xlabel('$\tau$'); ylabel('$k$'); title('Continuation results')
 
 % combined bifurcation diagram in 3D
-figure();
-plot_br2_3D(branch1,pind,1,2); hold on
-plot_br2_3D(branch2,pind,1,2);
-plot_br2_3D(branch_gr1,pind,1,2); hold off
-xlabel('$\tau$'); ylabel('$k$'); title('Continuation results')
+% figure();
+% plot_br2_3D(branch1,pind,1,2); hold on
+% plot_br2_3D(branch2,pind,1,2);
+% plot_br2_3D(branch_gr1,pind,1,2); hold off
+% xlabel('$\tau$'); ylabel('$k$'); title('Continuation results')
 
 
 %% Validate orbit stability via simulation
@@ -172,7 +172,7 @@ xlabel('$\tau$'); ylabel('$k$'); title('Continuation results')
 %% Recreate the continuation results using COCO
 % 
 % % Initialize COCO
-% addpath('C:\Users\Tudo\Documents\MATLAB\COCO');
+% addpath('<COCO_dir>'); % location of COCO installation
 % startup;
 % 
 % % define a COCO compatible problem

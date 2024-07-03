@@ -106,7 +106,7 @@ xlabel('$w$'); ylabel('$|u|$'); title('Continuation results')
 %% Recreate the first branch using COCO
 % 
 % % Initialize COCO
-% addpath('C:\Users\Tudo\Documents\MATLAB\COCO');
+% addpath('<COCO_dir>'); % location of COCO installation
 % startup;
 % 
 % % define a COCO compatible problem
