@@ -1,4 +1,4 @@
-function Jgr = mpbvp_gr_Jp(U,T,p,orb,sys,gr_ind,lp)
+function Jgr = mpbvp_gr_Jp(U,T,p,orb,sys,del,gr_ind)
 %MPBVP_GR_JP Grazing condition parameter Jacobian for a DDE 
 %piecewise-smooth periodic orbit
 % Input:
@@ -14,8 +14,11 @@ function Jgr = mpbvp_gr_Jp(U,T,p,orb,sys,gr_ind,lp)
 %    -> e: event function, map and corresponding Jacobians
 %    -> tau: time delay and its parameter Jacobian
 %    -> tau_no: number of distinct time delays
+%   del: data structure of delayed term evaluations
+%    -> ud: state at t-tau(k) (n x nt x M*N*n) (ACCOUNTING FOR NEUTRAL DELAYS!)
+%    -> id: segment index of t-tau(k) mapped back between 0 and T (M*n*N x nt)
+%    -> fi: lagrange interpolation coefficients (M*n*N x nt x M)
 %   gr_ind: index of grazing event
-%   lp: bifurcation parameter index (default all)
 % Output:
 %   Jgr: Jacobian of governing grazing condition wrt parameters (l x 1)
 
@@ -24,9 +27,6 @@ M = orb.M;              % mesh resolution
 n = orb.n;              % system dimension
 l = length(p);          % number of system parameters
 nt = sys.tau_no;        % number of time delays
-if nargin<7
-    lp = 1:l;           % indicies of bifurcation parameters
-end
 Jh = zeros(M,l);        % event condition parameter Jacobian evaluations
 D0 = cheb_diff(M);      % base differentiation matrix
 
@@ -38,9 +38,11 @@ end
 Jhp_ej = @(j,x,xd) feval(sys.e,x,xd,p,orb.sig(j),3,0);  % event condition at ej
 Jh_ej = @(j,x,xd,i) feval(sys.e,x,xd,p,orb.sig(j),2,i);  % event condition at ej
 
-% Evaluate current and delayed terms
+% Find current and delayed terms
 [~,us] = bvp2sig(U,T,M); % signal form of state vector
-[us_tau,i_tau,fi_tau,~,~] = po_delay_interp(U,T,p,M,sys); % interpolation of delayed terms
+us_tau = del.ud; % interpolations of the delayed terms
+i_tau = del.id; % containing segment indices
+fi_tau = del.fi; % Lagrange interpolation coefficients
 
 % Unpack relevant solution segment and evaluate event condition parameter Jacobians
 ii = (gr_ind-1)*M+1:gr_ind*M; % in us and ts
@@ -66,6 +68,6 @@ end
 
 % Take derivative at the boundary
 DM = 1/T(gr_ind) * cheb_diff(M);
-Jgr = DM(end,:) * Jh(:,lp);
+Jgr = DM(end,:) * Jh;
 end
 

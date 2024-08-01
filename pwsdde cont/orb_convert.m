@@ -51,8 +51,8 @@ h_ej = @(j,x,xd) feval(sys.e,x,xd,p,j,1,0);  % event condition at ej
 % Create higher resolution orbit for event search
 [ts,us] = bvp2sig([U; U],[Tj; Tj],M,ceil(res/(2*length(Tj)))); % signal form of state vector
 % interpolation of delayed terms 
-[us_tau,~,~,~] = po_delay_interp([U; U],[Tj;Tj],p,M,...
-   sys,ceil(res/(2*length(Tj)))); 
+del = po_delay_interp([U; U],[Tj;Tj],p,M,sys,ceil(res/(2*length(Tj)))); 
+us_tau = del.ud;
 
 % Evaluate event surfaces in all points
 ev_tol = zeros(sys.event_no,length(ts));

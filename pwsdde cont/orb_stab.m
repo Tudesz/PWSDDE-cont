@@ -25,7 +25,8 @@ function [mu,mu_crit,Th,vcrit] = orb_stab(orb,sys)
 %   Th: monodromy matrix
 %   vcrit: eigenvector corresponding to mu_crit
 
-Th = mpbvp_mon(orb.U,orb.T,orb.p,orb,sys);
+del = po_delay_interp(orb.U,orb.T,orb.p,orb.M,sys); 
+Th = mpbvp_mon(orb.U,orb.T,orb.p,orb,sys,del);
 [V,D] = eig(Th); 
 mu = diag(D);
 [~,muc_i] = max(abs(mu));

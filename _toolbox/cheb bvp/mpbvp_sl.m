@@ -1,4 +1,4 @@
-function sl = mpbvp_sl(U,T,p,orb,sys,sl_ind)
+function sl = mpbvp_sl(U,T,p,orb,sys,del,sl_ind)
 %MPBVP_SL Sliding condition for a DDE piecewise-smooth periodic orbit
 % IMPORTANT: in the current version, the following assumptions must hold:
 %   -> g(x) = x at the sliding event
@@ -15,6 +15,8 @@ function sl = mpbvp_sl(U,T,p,orb,sys,sl_ind)
 %    -> e: event function, map and corresponding Jacobians
 %    -> tau: time delay and its parameter Jacobian
 %    -> tau_no: number of distinct time delays
+%   del: data structure of delayed term evaluations
+%    -> ud: state at t-tau(k) (n x nt x M*N*n) (ACCOUNTING FOR NEUTRAL DELAYS!)
 %   sl_ind: index of sliding event
 % Output:
 %   sl: error of governing sliding condition (1)
@@ -26,9 +28,8 @@ m_in = feval(sys.e,[],[],[],orb.sig(sl_ind),7,1);     % mode before event
 m_out = feval(sys.e,[],[],[],orb.sig(sl_ind),7,2);    % mode after event
 u_sl = x0(:,sl_ind*M);     % state at sliding event
 
-% Interpolation of delayed terms
-[x0_tau,~,~,~,~] = po_delay_interp(U,T,p,M,sys);
-ud_sl = squeeze(x0_tau(:,:,sl_ind*M));
+% Find delayed terms
+ud_sl = squeeze(del.ud(:,:,sl_ind*M));
 
 % Evaluate relevant vector fields and event conditions
 f_in = feval(sys.f,u_sl,ud_sl,p,m_in,1,0);  % vector field before event

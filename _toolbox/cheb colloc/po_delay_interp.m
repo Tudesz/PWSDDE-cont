@@ -1,4 +1,4 @@
-function [ud,id,fi,nd,dT] = po_delay_interp(u0,Ti,par,M,sys,res)
+function del = po_delay_interp(u0,Ti,par,M,sys,res)
 %PO_DELAY_INTERP Evaluate delayed terms, corresponding segment indicies, 
 %and interpolation coefficients in the multi point boundary value
 %problem of periodic orbits
@@ -12,13 +12,14 @@ function [ud,id,fi,nd,dT] = po_delay_interp(u0,Ti,par,M,sys,res)
 %    -> tau_no: number of distinct time delays
 %   res: interpolation resolution (default M)
 % Output:
-%   ud: state at t-tau(k) (n x nt x M*N*n) (ACCOUNTING FOR NEUTRAL DELAYS!)
-%   id: segment index of t-tau(k) mapped back between 0 and T (M*n*N x nt)
-%   fi: lagrange interpolation coefficients (M*n*N x nt x M)
-%   nd: index of the periodic orbit where the tq is found without looping
-%   around (0 current, 1,2,... past orbits) (M*n*N x nt)
-%   dT: derivative of the querry point wrt Ti without looping around 
-%   (M*n*N x nt x N x n_tau)
+%   del: output structure of delayed term evaluations
+%    -> ud: state at t-tau(k) (n x nt x M*N*n) (ACCOUNTING FOR NEUTRAL DELAYS!)
+%    -> id: segment index of t-tau(k) mapped back between 0 and T (M*n*N x nt)
+%    -> fi: lagrange interpolation coefficients (M*n*N x nt x M)
+%    -> dT: derivative of the querry point wrt Ti without looping around 
+%       (M*n*N x nt x N x n_tau)
+%    -> nd: index of the periodic orbit where the tq is found without 
+%       looping around (0 current, 1,2,... past orbits) (M*n*N x nt)
 
 % Initialization
 nt = sys.tau_no;   % number of delays
@@ -37,11 +38,11 @@ if nargin < 6
 else
     [ts,~] = bvp2sig(u0,Ti,M,res); % time mesh
 end
-ud = zeros(n,nt,length(ts)); % delayed terms (state at t_tau)
-id = zeros(length(ts),nt); % index of the segment where delayed terms were interpolated
-fi = zeros(length(ts),nt,M); % lagrange interpolation coefficients
-nd = zeros(length(ts),nt); % index of present/past orbit where tq is found
-dT = zeros(length(ts),nt,N,ntau+1); % derivative of tq wrt segment lengths
+del.ud = zeros(n,nt,length(ts)); % delayed terms (state at t_tau)
+del.id = zeros(length(ts),nt); % index of the segment where delayed terms were interpolated
+del.fi = zeros(length(ts),nt,M); % lagrange interpolation coefficients
+del.nd = zeros(length(ts),nt); % index of present/past orbit where tq is found
+del.dT = zeros(length(ts),nt,N,ntau+1); % derivative of tq wrt segment lengths
 
 % Mapping points back to the periodic orbit
 for i = 1:length(ts)
@@ -70,45 +71,44 @@ for i = 1:length(ts)
                 i0 = i0-1;
             else
                 i0 = N;
-                nd(i,j) = nd(i,j)+1;
+                del.nd(i,j) = del.nd(i,j)+1;
             end
             
             % Emergency switch
-            if nd(i,j)>ntau
+            if del.nd(i,j)>ntau
                 warning('Maximum iteration number reached while searchig for t_tau');
                 break
             end
             
             % Update delta and its derivatives
             delta_i = delta_i + Ti(i0);
-            delta_Ti(i0,end-nd(i,j)) = delta_Ti(i0,end-nd(i,j)) + 1;
+            delta_Ti(i0,end-del.nd(i,j)) = delta_Ti(i0,end-del.nd(i,j)) + 1;
             
         end
 
-        if nd(i,j)>ntau
-            nd(i,j) = ntau;
-            id(i,j) = 1;
+        if del.nd(i,j)>ntau
+            del.nd(i,j) = ntau;
+            del.id(i,j) = 1;
             break
         end
         
         % Identify interpolation segment and querry point
-        id(i,j) = i0;
+        del.id(i,j) = i0;
         tq = (delta_i-tau(j))/Ti(i0);
         ui0 = u0((i0-1)*M*n+1:i0*M*n);
         
         % Lagrange interpolation
         fiq = lag_coeff(M,tq);
-        if tau_type(j)==1 % normal delay
-            fi(i,j,:) = fiq;
-        else  % neutral delay
-            fi(i,j,:) = 1/Ti(i0)*(D0.'*fiq.').'; 
+        if  tau_type(j)==2 % neutral delay
+            fiq = 1/Ti(i0)*(D0.'*fiq.').';
         end
-        ud(:,j,i) = (squeeze(fi(i,j,:)).'*reshape(ui0,M,n)).';
+        del.fi(i,j,:) = fiq; 
+        del.ud(:,j,i) = (fiq*reshape(ui0,M,n)).';
         
         % Evaluate derivative of t_tau wrt Ti
-        dT(i,j,:,:) = 1/Ti(i0)*delta_Ti;
-        dT(i,j,i0,end-nd(i,j)) = -(delta_i-tau(j)-...
-            delta_Ti(i0,end-nd(i,j))*Ti(i0))/Ti(i0)^2;
+        del.dT(i,j,:,:) = 1/Ti(i0)*delta_Ti;
+        del.dT(i,j,i0,end-del.nd(i,j)) = -(delta_i-tau(j)-...
+            delta_Ti(i0,end-del.nd(i,j))*Ti(i0))/Ti(i0)^2;
         
     end
     

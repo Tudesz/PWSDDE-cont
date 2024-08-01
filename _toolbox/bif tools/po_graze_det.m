@@ -41,16 +41,18 @@ h_ej = @(j,x,xd,p) feval(sys.e,x,xd,p,j,1,0);  % event condition at ej
 
 % Unpack solution vectors
 lp = length(opts.pi);
-p0 = pl_insert(orb.p,y0(end-lp+1:end),opts.pi);
+p0 = orb.p; p0(opts.pi) = y0(end-lp+1:end);
 Ti0 = y0(end-N-lp+1:end-lp);
-p1 = pl_insert(orb.p,y1(end-lp+1:end),opts.pi);
+p1 = orb.p; p1(opts.pi) = y1(end-lp+1:end);
 Ti1 = y1(end-N-lp+1:end-lp);
 
 % Evaluate current and delayed terms
 [~,x0] = bvp2sig(y0(1:end-N-lp),Ti0,M);
 [~,x1] = bvp2sig(y1(1:end-N-lp),Ti1,M);
-[x0_tau,~,~,~] = po_delay_interp(y0(1:end-N-lp),Ti0,p0,M,sys);
-[x1_tau,~,~,~] = po_delay_interp(y1(1:end-N-lp),Ti1,p1,M,sys);
+del0 = po_delay_interp(y0(1:end-N-lp),Ti0,p0,M,sys);
+x0_tau = del0.ud;
+del1 = po_delay_interp(y1(1:end-N-lp),Ti1,p1,M,sys);
+x1_tau = del1.ud;
 
 % Differentiation matricies (for n=1)
 D0 = zeros(M*N);
@@ -65,9 +67,11 @@ end
 % Evaluate h{i} for all points of x0 and x1
 h0 = zeros(M*N,m); h1 = h0;
 for i = 1:M*N
+    x0di = squeeze(x0_tau(:,:,i));
+    x1di = squeeze(x1_tau(:,:,i));
     for j = 1:m
-        h0(i,j) = h_ej(j,x0(:,i),squeeze(x0_tau(:,:,i)),p0);
-        h1(i,j) = h_ej(j,x1(:,i),squeeze(x1_tau(:,:,i)),p1);
+        h0(i,j) = h_ej(j,x0(:,i),x0di,p0);
+        h1(i,j) = h_ej(j,x1(:,i),x1di,p1);
     end
 end
 

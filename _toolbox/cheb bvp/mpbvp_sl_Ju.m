@@ -1,4 +1,4 @@
-function Jsl = mpbvp_sl_Ju(U,T,p,orb,sys,sl_ind)
+function Jsl = mpbvp_sl_Ju(U,T,p,orb,sys,del,sl_ind)
 %MPBVP_SL_JU Sliding condition Jacobian for a DDE piecewise-smooth 
 %periodic orbit
 % IMPORTANT: in the current version, these assumptions must hold:
@@ -17,6 +17,12 @@ function Jsl = mpbvp_sl_Ju(U,T,p,orb,sys,sl_ind)
 %    -> e: event function, map and corresponding Jacobians
 %    -> tau: time delay and its parameter Jacobian
 %    -> tau_no: number of distinct time delays
+%   del: data structure of delayed term evaluations
+%    -> ud: state at t-tau(k) (n x nt x M*N*n) (ACCOUNTING FOR NEUTRAL DELAYS!)
+%    -> id: segment index of t-tau(k) mapped back between 0 and T (M*n*N x nt)
+%    -> fi: lagrange interpolation coefficients (M*n*N x nt x M)
+%    -> dT: derivative of the querry point wrt Ti without looping around 
+%       (M*n*N x nt x N x n_tau)
 %   sl_ind: index of sliding event
 % Output:
 %   Jsl: Jacobian of governing sliding condition (N*M*n+N x 1)
@@ -39,8 +45,11 @@ m_out = feval(sys.e,[],[],[],orb.sig(sl_ind),7,2);    % mode after event
 u_sl = x0(:,sl_ind*M);          % state at sliding event
 
 % Interpolation of delayed terms
-[x0_tau,i_tau,fi_tau,~,dT] = po_delay_interp(U,T,p,M,sys);
-ud_sl = squeeze(x0_tau(:,:,sl_ind*M));
+us_tau = del.ud; % interpolations of the delayed terms
+i_tau = del.id; % containing segment indices
+fi_tau = del.fi; % Lagrange interpolation coefficients
+dT = del.dT; % derivatives wrt segment lengths
+ud_sl = squeeze(us_tau(:,:,sl_ind*M));
 
 % Evaluate relevant vector fields and event conditions
 f_in = feval(sys.f,u_sl,ud_sl,p,m_in,1,0);  % vector field before event

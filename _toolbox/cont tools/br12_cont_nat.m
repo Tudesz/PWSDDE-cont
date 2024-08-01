@@ -26,7 +26,8 @@ function branch = br12_cont_nat(orb,sys,opts,bifs)
 %    -> ds: stepsize in the first continuation parameter
 %    -> np: number of continuation steps
 %    -> jac: if false use fsolve for mpbvp solution (default true)
-%    -> stop: stopping conditions for the continuation run (optional field)
+%    -> c_logs: log iterations in initial correction steps (default true)
+%    -> stop: stopping conditions for the continuation run 
 %      -> p_lim: limits of the continuation paramters p(pind) [p_min p_max]
 %           can use separate limits in two parameter continuation (2x2)
 %           (default [-inf inf])
@@ -43,7 +44,7 @@ function branch = br12_cont_nat(orb,sys,opts,bifs)
 %      -> va_tol: tolerance for aborting continuation runs when segment 
 %           lengths become too small (default 1e-3)
 %      -> gr_tol: tolerance for grazing detection (default 1e-10)
-%   -> nr: parameters of the employed Newton iteration (optional field)
+%   -> nr: parameters of the employed Newton iteration 
 %      -> logs: if true print progress of Newton iteration (default false)
 %      -> reltol: iteration stopping condition in step norm (default 1e-7)
 %      -> abstol: iteration stopping condition in error norm (default 1e-10)
@@ -74,53 +75,12 @@ function branch = br12_cont_nat(orb,sys,opts,bifs)
 % check solution signature
 check_sig(orb,sys);
 
-% Default solver options
-if ~isfield(opts,'nr') || ~isfield(opts.nr,'abstol')
-    opts.nr.abstol = 1e-10; % default solver tolerance
-end
-
-% Stopping conditions
-if ~isfield(opts,'stop')
-    opts.stop = struct();
-end
-if ~isfield(opts.stop,'n_step')
-    opts.stop.n_step = [100 100]; % number of allowed steps in both direction
-end
-if ~isfield(opts.stop,'p_lim')
-    opts.stop.p_lim = [-inf inf]; % by default no limit on the continuation paramters
-end
-if ~isfield(opts.stop,'conv')
-    opts.stop.conv = false; % dont stop at non-convergent solutions
-end
-if ~isfield(opts.stop,'Tneg')
-    opts.stop.Tneg = true; % stop if negative segment lengths are encountered
-end
-if ~isfield(opts.stop,'stab_ch')
-    opts.stop.stab_ch = false; % dont stop at stability changes
-end
-if ~isfield(opts.stop,'int_gr')
-    opts.stop.int_gr = true; % stop at interior grazing
-end
-if ~isfield(opts.stop,'ext_gr')
-    opts.stop.ext_gr = true; % stop at exterior grazing
-end
-if ~isfield(opts.stop,'slide')
-    opts.stop.slide = true; % stop at sliding
-end
-if ~isfield(opts.stop,'user_q')
-    opts.stop.user_q = false; % no stopping by default at monitor function zero crossings
-end
-if ~isfield(opts.stop,'va_tol')
-    opts.stop.va_tol = 1e-3; % default segment length tolerance
-end
-opts.stop.pi = opts.pi; % for compatibility
-
 % Solver data initialization
 pind = opts.pi;     % indices of continuation parameters
 ds = opts.ds;       % used fixed stepsize
 np = opts.np;       % number of continuation steps
 lp = length(pind);  % number of continuation parameters
-
+opts.stop.pi = pind;% for backwards compatibility
 
 % Output initialization
 br = struct('bif_p',[],'bif_type',[],'error',[],'mu_crit',[],'tg',[],...
@@ -147,10 +107,7 @@ branch(1).error = norm(err);
 
 % Initialize continuation run
 bif_p = orb0.p(pind(1)) + (0:np)*ds; % bifurcation parameter along the branch
-rt0 = tic; 
-if ~isfield(opts.nr,'logs')
-    opts.nr.logs = false;
-end
+rt0 = tic;
 if isfield(sys,'q')
     y0 = [branch(1).U; branch(1).T; branch(1).p(pind).'];
     branch(1).q = feval(sys.q,y0,orb,sys,pind);
@@ -163,6 +120,7 @@ end
 
 % Continuation with natural parameter continuation
 fprintf('\nContinuation of periodic orbits\n')
+opts.c_logs = false;
 for i = 2:np+1
     orb0.p(pind(1)) = bif_p(i);
     % Correct solution points

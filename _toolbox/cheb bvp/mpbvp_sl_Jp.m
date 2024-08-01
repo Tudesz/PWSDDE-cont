@@ -1,4 +1,4 @@
-function Jsl = mpbvp_sl_Jp(U,T,p,orb,sys,sl_ind,lp)
+function Jsl = mpbvp_sl_Jp(U,T,p,orb,sys,del,sl_ind)
 %MPBVP_SL_JP Sliding condition Jacobian for a DDE piecewise-smooth 
 %periodic orbit
 % IMPORTANT: in the current version, these assumptions must hold:
@@ -17,8 +17,10 @@ function Jsl = mpbvp_sl_Jp(U,T,p,orb,sys,sl_ind,lp)
 %    -> e: event function, map and corresponding Jacobians
 %    -> tau: time delay and its parameter Jacobian
 %    -> tau_no: number of distinct time delays
-%   sl_ind: index of grazing event
-%   lp: bifurcation parameter index (default all)
+%   del: data structure of delayed term evaluations
+%    -> ud: state at t-tau(k) (n x nt x M*N*n) (ACCOUNTING FOR NEUTRAL DELAYS!)
+%    -> id: segment index of t-tau(k) mapped back between 0 and T (M*n*N x nt)
+%    -> fi: lagrange interpolation coefficients (M*n*N x nt x M)
 % Output:
 %   Jsl: Jacobian of governing sliding condition wrt parameters (l x 1)
 
@@ -27,10 +29,7 @@ M = orb.M;              % mesh resolution
 n = orb.n;              % system dimension
 l = length(p);          % number of system parameters
 nt = sys.tau_no;        % number of time delays
-if nargin<7
-    lp = 1:l;           % indicies of bifurcation parameters
-end
-D0 = cheb_diff(M);              % base differentiation matrix
+D0 = cheb_diff(M);      % base differentiation matrix
 
 % Function definitions
 dtau = zeros(nt,l); % parameter derivatives of time delays
@@ -45,9 +44,11 @@ m_in = feval(sys.e,[],[],[],orb.sig(sl_ind),7,1);     % mode before event
 m_out = feval(sys.e,[],[],[],orb.sig(sl_ind),7,2);    % mode after event
 u_sl = x0(:,sl_ind*M);          % state at sliding event
 
-% Interpolation of delayed terms
-[x0_tau,i_tau,fi_tau,~,~] = po_delay_interp(U,T,p,M,sys);
-ud_sl = squeeze(x0_tau(:,:,sl_ind*M));
+% Find delayed terms
+us_tau = del.ud; % interpolations of the delayed terms
+i_tau = del.id; % containing segment indices
+fi_tau = del.fi; % Lagrange interpolation coefficients
+ud_sl = squeeze(us_tau(:,:,sl_ind*M));
 
 % Evaluate relevant vector fields and event conditions
 f_in = feval(sys.f,u_sl,ud_sl,p,m_in,1,0);  % vector field before event
@@ -80,7 +81,7 @@ for k = 1:nt
 end
 
 % Pick relevant elements
-Jsl = sign(h_sl)*(dh_sl(lp)+dht_sl(lp));
+Jsl = sign(h_sl)*(dh_sl+dht_sl);
 
 end
 

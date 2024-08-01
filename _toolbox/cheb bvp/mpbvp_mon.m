@@ -1,4 +1,4 @@
-function Theta = mpbvp_mon(U,T,p,orb,sys)
+function Theta = mpbvp_mon(U,T,p,orb,sys,del)
 %MPBVP_MON Formulate monodromy matrix of periodic orbits based on IFT
 %for non-smooth autonomous DDEs
 % Input:
@@ -17,6 +17,14 @@ function Theta = mpbvp_mon(U,T,p,orb,sys)
 %    -> aut: if true the sytem is truly autonomous, thus the vector field 
 %       condition for the final point of the orbit is included 
 %       during mondoromy matrix formulation (default true)
+%   del: data structure of delayed term evaluations
+%    -> ud: state at t-tau(k) (n x nt x M*N*n) (ACCOUNTING FOR NEUTRAL DELAYS!)
+%    -> id: segment index of t-tau(k) mapped back between 0 and T (M*n*N x nt)
+%    -> fi: lagrange interpolation coefficients (M*n*N x nt x M)
+%    -> dT: derivative of the querry point wrt Ti without looping around 
+%       (M*n*N x nt x N x n_tau)
+%    -> nd: index of the periodic orbit where the tq is found without 
+%       looping around (0 current, 1,2,... past orbits) (M*n*N x nt)
 % Output:
 %   Theta: monodromy matrix of periodic orbit
 
@@ -39,9 +47,13 @@ Jh_ej = @(j,x,xd,i) feval(sys.e,x,xd,p,orb.sig(j),2,i);  % event condition at ej
 Jg_ej = @(j,x,xd,i) feval(sys.e,x,xd,p,orb.sig(j),5,i);  % event map at ej
 td_type = @(i) feval(sys.tau,[],i,1);                    % delay type identifier
 
-% Evaluate current and delayed terms
+% Find current and delayed terms
 [~,us] = bvp2sig(U,T,M); % signal form of state vector
-[us_tau,i_tau,fi_tau,nd_tau,dT] = po_delay_interp(U,T,p,M,sys); % interpolation of delayed terms
+us_tau = del.ud; % interpolations of the delayed terms
+i_tau = del.id; % containing segment indices
+fi_tau = del.fi; % Lagrange interpolation coefficients
+dT = del.dT; % derivatives wrt segment lengths
+nd_tau = del.nd; % index indicating the active periodic orbit instance
 
 % Extend the Jacobian with the solution tail x0 on [-tau_max,0]
 if nt>0
@@ -70,16 +82,17 @@ for j = 1:N
     % Place interface condition counterparts in off diagonal blocks
     ut = us(:,ii(end));
     utau = squeeze(us_tau(:,:,ii(end)));
-    g_i =  Jg_ej(j,ut,utau,0); % event map jacobian shifted back by one instance
-    De_p = zeros(M); De_p(end,1) = 1;
-    De_m = zeros(M); De_m(end,end) = 1;
+    dg_i =  Jg_ej(j,ut,utau,0); % event map jacobian shifted back by one instance
+    ij_M = (j-1)*M*n+M*(1:n); % row index of the current continuity condition
     if j==N
         % keep only one side of the periodicity condition in Ju{end}
-        Ju{end}(ij,1:M*n) = Ju{end}(ij,1:M*n) + kron(eye(n),De_p);
-        Ju{end-1}(ij,ij) = Ju{end-1}(ij,ij) - kron(g_i,De_m);
+        g_ij = 1+M*(0:n-1); % map to the first segment
+        Ju{end}(ij_M,g_ij) = Ju{end}(ij_M,g_ij) + eye(n);
+        Ju{end-1}(ij_M,ij_M) = Ju{end-1}(ij_M,ij_M) - dg_i;
     else
-        Ju{end}(ij,ij+M*n) = Ju{end}(ij,ij+M*n) + kron(eye(n),De_p);
-        Ju{end}(ij,ij) = Ju{end}(ij,ij) - kron(g_i,De_m);
+        g_ij = j*M*n+1+M*(0:n-1); % map to the next segment
+        Ju{end}(ij_M,g_ij) = Ju{end}(ij_M,g_ij) + eye(n);
+        Ju{end}(ij_M,ij_M) = Ju{end}(ij_M,ij_M) - dg_i;
     end
 
     % Derivative wrt Ti
@@ -90,7 +103,8 @@ for j = 1:N
     for k = 1:M
         ut = us(:,ii(k));
         utau = squeeze(us_tau(:,:,ii(k)));
-        
+        ij_k = (j-1)*M*n+k+M*(0:n-1); % row index of the current vector field or continuity condition
+
         % Continuous terms
         if k<M || (sys.aut && j==N)
             % Inner points
@@ -98,17 +112,14 @@ for j = 1:N
         end
         if k==M
             % Boundary points (event map g handled above)
-            Ju{end}(jT(j),ij(M:M:end)) = Ju{end}(jT(j),ij(M:M:end)) + ...
-                Jh_ej(j,ut,utau,0);  % event condition (move to Ju{end-1} if i==Ne?)
+            Ju{end}(jT(j),ij_k) = Ju{end}(jT(j),ij_k) + Jh_ej(j,ut,utau,0);  % event condition (move to Ju{end-1} if i==Ne?)
         end
 
         % Delayed terms wrt u(t-tau)
         for i = 1:nt
 
-            fi_jk = zeros(M);
-            dfi_jk = zeros(M);
-            fi_jk(k,:) = squeeze(fi_tau(ii(k),i,:)); % interpolation coefficients
-            dfi_jk(k,:) = (D0.'*fi_jk(k,:).').'; % time derivative of interpolation coefficients
+            fi_jk = squeeze(fi_tau(ii(k),i,:)).'; % Lagrange coefficients
+            dfi_jk = (D0.'*fi_jk.').'; % Derivatives of Lagrange coefficients
             i_jk = i_tau(ii(k),i);  % index of segment containing t-tau_i
             ijk = (i_jk-1)*M*n+1:i_jk*M*n; % indicies of interpolation segment elements
             n_jk = nd_tau(ii(k),i); % index of orbit which contains t-tau
@@ -116,14 +127,14 @@ for j = 1:N
             if k<M || (sys.aut && j==N)
                 % Interior points
                 df_jk = Jf_mj(mj,ut,utau,i); % Jacobian of f wrt u(t-tau(k))
-                Ju{end-n_jk}(ij,ijk) = Ju{end-n_jk}(ij,ijk) - kron(df_jk,fi_jk);
+                Ju{end-n_jk}(ij_k,ijk) = Ju{end-n_jk}(ij_k,ijk) - kron(df_jk,fi_jk);
                 for nk = 0:ntau
                     dT_njk = squeeze(dT(ii(k),i,:,end-nk)).';
-                    Ju{end-nk}(ij,jT) = Ju{end-nk}(ij,jT)...
+                    Ju{end-nk}(ij_k,jT) = Ju{end-nk}(ij_k,jT)...
                         - kron(df_jk,dfi_jk)*U(ijk)*dT_njk;
                 end
                 if td_type(i) == 2 % extra term for neutral delays
-                    Ju{end-n_jk}(ij,jT(i_jk)) = Ju{end-n_jk}(ij,jT(i_jk))...
+                    Ju{end-n_jk}(ij_k,jT(i_jk)) = Ju{end-n_jk}(ij_k,jT(i_jk))...
                         + kron(df_jk,fi_jk)*U(ijk)/T(i_jk);
                 end
             end
@@ -133,40 +144,40 @@ for j = 1:N
                 dg_jk = Jg_ej(j,ut,utau,i); % Jacobian of g wrt u(t-tau(k))
                 dh_jk = Jh_ej(j,ut,utau,i); % Jacobian of h wrt u(t-tau(k))
                 if j==N % Moved back by 1 along with g_N
-                    Ju{end-n_jk-1}(ij,ijk) = Ju{end-n_jk-1}(ij,ijk) ...
+                    Ju{end-n_jk-1}(ij_k,ijk) = Ju{end-n_jk-1}(ij_k,ijk) ...
                         - kron(dg_jk,fi_jk);
                     for nk = 0:ntau-1
                         dT_njk = squeeze(dT(ii(k),i,:,end-nk)).';
-                        Ju{end-nk-1}(ij,jT) = Ju{end-nk-1}(ij,jT)...
+                        Ju{end-nk-1}(ij_k,jT) = Ju{end-nk-1}(ij_k,jT)...
                             - kron(dg_jk,dfi_jk)*U(ijk)*dT_njk;
                     end
                     if td_type(i) == 2 % extra terms for neutral delays
-                        Ju{end-n_jk-1}(ij,jT(i_jk)) = Ju{end-n_jk-1}(ij,jT(i_jk))...
+                        Ju{end-n_jk-1}(ij_k,jT(i_jk)) = Ju{end-n_jk-1}(ij_k,jT(i_jk))...
                             + kron(dg_jk,fi_jk)*U(ijk)/T(i_jk);
                     end
                 else
-                    Ju{end-n_jk}(ij,ijk) = Ju{end-n_jk}(ij,ijk) ...
+                    Ju{end-n_jk}(ij_k,ijk) = Ju{end-n_jk}(ij_k,ijk) ...
                         - kron(dg_jk,fi_jk);
                     for nk = 0:ntau
                         dT_njk = squeeze(dT(ii(k),i,:,end-nk)).';
-                        Ju{end-nk}(ij,jT) = Ju{end-nk}(ij,jT)...
+                        Ju{end-nk}(ij_k,jT) = Ju{end-nk}(ij_k,jT)...
                             - kron(dg_jk,dfi_jk)*U(ijk)*dT_njk;
                     end
                     if td_type(i) == 2 % extra terms for neutral delays
-                        Ju{end-n_jk}(ij,jT(i_jk)) = Ju{end-n_jk}(ij,jT(i_jk))...
+                        Ju{end-n_jk}(ij_k,jT(i_jk)) = Ju{end-n_jk}(ij_k,jT(i_jk))...
                             + kron(dg_jk,fi_jk)*U(ijk)/T(i_jk);
                     end
                 end
                 Ju{end-n_jk}(jT(j),ijk) = Ju{end-n_jk}(jT(j),ijk) ...
-                    + kron(dh_jk,fi_jk(k,:));
+                    + kron(dh_jk,fi_jk);
                 for nk = 0:ntau
                     dT_njk = squeeze(dT(ii(k),i,:,end-nk)).';
                     Ju{end-nk}(jT(j),jT) = Ju{end-nk}(jT(j),jT)...
-                        + kron(dh_jk,dfi_jk(k,:))*U(ijk)*dT_njk;
+                        + kron(dh_jk,dfi_jk)*U(ijk)*dT_njk;
                 end
                 if td_type(i) == 2 % extra terms for neutral delays
                     Ju{end-n_jk}(jT(j),jT(i_jk)) = Ju{end-n_jk}(jT(j),jT(i_jk))...
-                        - kron(dh_jk,fi_jk(k,:))*U(ijk)/T(i_jk);
+                        - kron(dh_jk,fi_jk)*U(ijk)/T(i_jk);
                 end
             end            
         end

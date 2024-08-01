@@ -1,4 +1,4 @@
-function err = mpbvp(U,T,p,orb,sys)
+function err = mpbvp(U,T,p,orb,sys,del)
 %MPBVP Discretized multiple-point boundary value problem of
 %autonomous non-smooth periodic orbits in DDEs
 % Input:
@@ -14,6 +14,8 @@ function err = mpbvp(U,T,p,orb,sys)
 %    -> e: event function, map and corresponding Jacobians
 %    -> tau: time delay and its parameter Jacobian
 %    -> tau_no: number of distinct time delays
+%   del: data structure of delayed term evaluations
+%    -> ud: state at t-tau(k) (n x nt x M*N*n) (ACCOUNTING FOR NEUTRAL DELAYS!)
 % Output:
 %   err: error of governing system of nonlinear equations (M*N*n + N)
 
@@ -32,9 +34,9 @@ f_mj = @(mj,x,xd) feval(sys.f,x,xd,p,mj,1,0);         % vector field in mode mj
 h_ej = @(j,x,xd) feval(sys.e,x,xd,p,orb.sig(j),1,0);  % event condition at ej
 g_ej = @(j,x,xd) feval(sys.e,x,xd,p,orb.sig(j),4,0);  % jump map at ej
 
-% Evaluate current and delayed terms
+% Find current and delayed terms
 [~,us] = bvp2sig(U,T,M); % signal form of state vector
-[us_tau,~,~,~,~] = po_delay_interp(U,T,p,M,sys); % interpolation of delayed terms
+us_tau = del.ud; % extract the interpolations of delayed terms
 
 % Go segment by segment (M*n+1 rows each)
 for j = 1:N

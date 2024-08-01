@@ -3,10 +3,13 @@ warning off backtrace
 %% Example continuation problem of a 1 DoF dry friction oscillator
 % using a nondimensionalized form of the governing equation of motion
 % artificial DDE formalism, phase shift cosidered as time delay
+% further details on the model are available in the appendix of:
+% ...
 
 % Dependencies
 addpath(genpath('_toolbox'))
-addpath('pwsdde cont','plot tools')
+addpath(genpath('pwsdde cont'))
+addpath(genpath('plot tools'))
 
 % Default plot options
 set(0, 'DefaultLineLineWidth', 1);
@@ -86,7 +89,7 @@ figure(); plot_orb(orb1c,sys,'fricosc_p'); title('Corrected orbit');
 %% Follow simple periodic orbits in excitation frequency
 
 % Continuation run 1) in om
-opts1.pi = 2; % position of om in p0
+opts1 = br12_opts(2); % position of om in p0
 opts1.stop.int_gr = false; % do not stop at false grazing events
 branch1 = br12_cont_adapt(orb1,sys,opts1);
 % figure(); plot_br1_ampl(branch1,opts1.pi,1,false);
@@ -95,13 +98,12 @@ branch1 = br12_cont_adapt(orb1,sys,opts1);
 % figure(); plot_orb_events(branch1(end),sys)
 
 % Using a fixed stepsize (run 1)
-% cont_opts = opts1;  % extend the previous options structure
-% cont_opts.np = 100; % number of contination steps
-% cont_opts.ds = -0.2;% arclenght step (negative direction)
-% branch1 = br12_cont_fix(orb1c,sys,cont_opts);
-% cont_opts.ds = 0.5; % flip the continuation direction
-% branch2 = br12_cont_fix(orb1c,sys,cont_opts);
-% branch1 = cat(1,flip(branch1),branch2); % concatenate the two branches
+% opts1a = br12_opts(2,-0.2,100); % index of om, ds, n_step
+% opts1a.stop.int_gr = false; % do not stop at false grazing events
+% branch1a = br12_cont_fix(orb1c,sys,opts1);
+% opts1b = opts1; opts2.ds = 0.5; % flip the continuation direction
+% branch1b = br12_cont_fix(orb1c,sys,opts2);
+% branch1 = cat(1,flip(branch1a),branch1b); % concatenate the two branches
 
 
 %% Follow orbits with sticking segments
@@ -110,7 +112,7 @@ branch1 = br12_cont_adapt(orb1,sys,opts1);
 t_guess = [0.0 0.163 2.196 4.349 4.446 8.667]; % guess for adaptive branch1
 % t_guess = [0.0 0.2 2.207 4.324 4.542 8.704]; % guess for fixed step branch1
 orb2 = orb_convert(branch1(1),sys,t_guess); % orbit conversion
-% orb2 = orb_convert(orb20,sys,6); % with manual event selection
+% orb2 = orb_convert(branch1(1),sys,6); % with manual event selection
 orb2.sig = [4 7 3 6 5]; % new solution signature (with sticking events)
 % figure(); plot_orb(orb2,sys)
 
@@ -119,7 +121,7 @@ orb2c = orb_corr(orb2,sys);
 % figure(); plot_orb(orb2c,sys)
 
 % Continuation run (2) in om
-opts_s1.pi = 2; % position of om in p0
+opts_s1 = br12_opts(2); % position of om in p0
 opts_s1.stop.int_gr = false; % do not stop at false grazing events
 opts_s1.stop.n_step = [100 0]; % only do continuation in -om
 branch_s1 = br12_cont_adapt(orb2,sys,opts_s1);
@@ -127,8 +129,9 @@ branch_s1 = br12_cont_adapt(orb2,sys,opts_s1);
 % figure(); plot_orb(branch_s1(end),sys,'fricosc_p')
 
 % Using a fixed stepsize (run 2)
-% cont_opts.ds = -0.5;
-% branch_s1 = br12_cont_fix(orb2c,sys,cont_opts);
+% opts_s1 = br12_opts(2,-0.5,100); % index of om, ds, n_step
+% opts_s1.stop.int_gr = false; % do not stop at false grazing events
+% branch_s1 = br12_cont_fix(orb2c,sys,opts_s1);
 
 % Change solution signature to allow going further
 orb3 = branch_s1(1); % initial orbit from adaptive branch_s1
@@ -139,7 +142,7 @@ orb3c = orb_corr(orb3,sys);
 % figure(); plot_orb(orb3c,sys)
 
 % Continuation run (3) in om
-opts_s2.pi = 2; % position of om in p0
+opts_s2 = br12_opts(2); % position of om in p0
 opts_s2.stop.int_gr = false; % do not stop at false grazing events
 opts_s2.stop.n_step = [100 0]; % only do continuation in -om
 branch_s2 = br12_cont_adapt(orb3c,sys,opts_s2);
@@ -147,8 +150,9 @@ branch_s2 = br12_cont_adapt(orb3c,sys,opts_s2);
 % figure(); plot_orb(branch_s2(end),sys,'fricosc_p')
 
 % Using a fixed stepsize (run 3)
-% cont_opts.ds = -1;
-% branch_s2 = br12_cont_fix(orb3c,sys,cont_opts);
+% opts_s2 = br12_opts(2,-1,100); % index of om, ds, n_step
+% opts_s2.stop.int_gr = false; % do not stop at false grazing events
+% branch_s2 = br12_cont_fix(orb3c,sys,opts_s2);
 
 
 %% Follow a branch of sliding bifurcations
@@ -159,11 +163,11 @@ orb_sl = branch1(1); % initial orbit from adaptive branch1
 bifs.type = 2;  % sliding bifurcation
 bifs.ind = 2;   % at the second event (also third due to simmetry, but one is enough)
 bifs.pi = 2;    % free paramter needed to locate the bifurcation point
-orb_slc = orb_corr(orb_sl,sys,bifs);
+orb_slc = orb_corr(orb_sl,sys,[],bifs);
 % figure(); plot_orb(orb_slc,sys,'fricosc_p'); title('Sliding orbit')
 
 % Continuation run (4) in f_0 and om
-opts_sl1.pi = [4 2]; % position of f_0 and om in p0
+opts_sl1 = br12_opts([4 2]); % position of f_0 and om in p0
 opts_sl1.stop.int_gr = false; % do not stop at false grazing events
 opts_sl1.stop.slide = false; % do not stop at false sliding events
 opts_sl1.stop.p_lim = [-inf 1.5; -inf inf]; % [f_0_min f_0_max; om_min om_max]
@@ -173,22 +177,24 @@ branch_sl1 = br12_cont_adapt(orb_slc,sys,opts_sl1,bifs);
 % figure(); plot_orb(branch_sl1(end),sys,'fricosc_p')
 
 % Using a fixed stepsize (run 4)
-% cont_opts = opts_sl1;   % extend the previous options structure
-% cont_opts.np = 100;     % number of contination steps
-% cont_opts.ds = 0.5;     % arclenght step
-% branch_sl1 = br12_cont_fix(orb_slc,sys,cont_opts,bifs);
+% opts_sl1 = br12_opts([4 2],0.5,100); % index of f_0 and om, ds, n_step
+% opts_sl1.stop.int_gr = false; % do not stop at false grazing events
+% opts_sl1.stop.slide = false; % do not stop at false sliding events
+% opts_sl1.stop.p_lim = [-inf 1.5; -inf inf]; % [f_0_min f_0_max; om_min om_max]
+% opts_sl1.psa.ds_lim = [1e-3 0.5]; % [ds_min ds_max]
+% branch_sl1 = br12_cont_fix(orb_slc,sys,opts_sl1,bifs);
 
 
 %% Plot continuation results
 
 % combined bifurcation diagram in 3D
-pind = [2,4];
+pind = [2,4]; uind = 1;
 figure();
-plot_br2_3D(branch1,pind,1,2); hold on
-plot_br2_3D(branch_s1,pind,1,2);
-plot_br2_3D(branch_s2,pind,1,2);
-plot_br2_3D(branch_sl1,pind,1,2); hold off
-xlabel('$\omega$'); ylabel('$f_0$'); title('Continuation results')
+plot_br2_3D(branch1,pind,uind,2); hold on
+plot_br2_3D(branch_s1,pind,uind,2);
+plot_br2_3D(branch_s2,pind,uind,2);
+plot_br2_3D(branch_sl1,pind,uind,2); hold off
+xlabel('$\omega$'); ylabel('$f_0$'); zlabel('$|x|$'); title('Continuation results')
 
 
 %% Recreate the continuation results using COCO

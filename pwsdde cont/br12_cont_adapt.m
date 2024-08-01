@@ -23,7 +23,8 @@ function branch = br12_cont_adapt(orb,sys,opts,bifs)
 %       during mondoromy matrix formulation (default true)
 %   opts: numerical method parameters
 %    -> pi: indicies of continuation parameters (length of 1 or 2)
-%    -> psa: pseudo-arclength method parameters (optional field)
+%    -> c_logs: log iterations in initial correction steps (default true)
+%    -> psa: pseudo-arclength method parameters 
 %      -> ds0: default arclength stepsize (default 0.1)
 %      -> ds_lim: minimum and maximum allowed stepsize [ds_min ds_max]
 %           (default [1e-3 10])
@@ -31,7 +32,7 @@ function branch = br12_cont_adapt(orb,sys,opts,bifs)
 %           tangent (default 1e-5*ds0)
 %      -> init_corr: if true correct initial solution guess before taking 
 %           any pseudo-arclength steps (default true)
-%    -> stop: stopping conditions for the continuation run (optional field)
+%    -> stop: stopping conditions for the continuation run 
 %      -> n_step: maximum number of continuation steps in both directions
 %           [n_step_m n_step_p] (default [100 100])
 %      -> p_lim: limits of the continuation paramters p(pind) [p_min p_max]
@@ -50,7 +51,7 @@ function branch = br12_cont_adapt(orb,sys,opts,bifs)
 %      -> va_tol: tolerance for aborting continuation runs when segment 
 %           lengths become too small (default 1e-3)
 %      -> gr_tol: tolerance for grazing detection (default 1e-10)
-%    -> nr: parameters of the employed Newton iteration (optional field)
+%    -> nr: parameters of the employed Newton iteration 
 %      -> logs: if true print progress of Newton iteration (default false)
 %      -> reltol: iteration stopping condition in step norm (default 1e-7)
 %      -> abstol: iteration stopping condition in error norm (default 1e-10)
@@ -82,137 +83,43 @@ function branch = br12_cont_adapt(orb,sys,opts,bifs)
 % check solution signature
 check_sig(orb,sys);
 
-% Default solver options
-if ~isfield(opts,'nr') || ~isfield(opts.nr,'abstol')
-    opts.nr.abstol = 1e-10; % default solver tolerance
-end
-
-% Pseudo arclength stepping options
-if ~isfield(opts,'psa')
-    opts.psa = struct();
-end
-if ~isfield(opts.psa,'ds0')
-    opts.psa.ds0 = 0.1; % default psa stepsize
-end
-if ~isfield(opts.psa,'ds_lim')
-    opts.psa.ds_lim = [1e-3 10]; % limits of the psa stepsize
-end
-if ~isfield(opts.psa,'tgi_ds')
-    opts.psa.tgi_ds = 1e-5; % default relative length of zeroth step
-end
-if ~isfield(opts.psa,'init_corr')
-    opts.psa.init_corr = true; % correct initial guess before ps steps
-end
-
-% Stopping conditions
-if ~isfield(opts,'stop')
-    opts.stop = struct();
-end
-if ~isfield(opts.stop,'n_step')
-    opts.stop.n_step = [100 100]; % number of allowed steps in both direction
-end
-if ~isfield(opts.stop,'p_lim')
-    opts.stop.p_lim = [-inf inf]; % by default no limit on the continuation paramters
-end
-if ~isfield(opts.stop,'conv')
-    opts.stop.conv = false; % dont stop at non-convergent solutions
-end
-if ~isfield(opts.stop,'Tneg')
-    opts.stop.Tneg = true; % stop if negative segment lengths are encountered
-end
-if ~isfield(opts.stop,'stab_ch')
-    opts.stop.stab_ch = false; % dont stop at stability changes
-end
-if ~isfield(opts.stop,'int_gr')
-    opts.stop.int_gr = true; % stop at interior grazing
-end
-if ~isfield(opts.stop,'ext_gr')
-    opts.stop.ext_gr = true; % stop at exterior grazing
-end
-if ~isfield(opts.stop,'slide')
-    opts.stop.slide = true; % stop at sliding
-end
-if ~isfield(opts.stop,'user_q')
-    opts.stop.user_q = false; % no stopping by default at monitor function zero crossings
-end
-if ~isfield(opts.stop,'va_tol')
-    opts.stop.va_tol = 1e-3; % default segment length tolerance
-end
-opts.stop.pi = opts.pi; % for backwards compatibility
-
 % Solver data initialization
 pind = opts.pi;     % bifurcation parameter index
-p0 = orb.p;         % default parameter vector
-sig = orb.sig;      % solution signature
-N = length(sig);    % number of smooth segments
 lp = length(pind);  % number of continuation parameters
+N = length(orb.sig);% number of segments
+opts.stop.pi = pind;% for backwards compatibility
+if nargin > 3
+    bifs.pi = pind(1); % match the free parameters
+end
 
 % Function set initialization
 if lp == 1
     % One parameter continuation
-    f = @(x,par) mpbvp(x(1:end-N),x(end-N+1:end),par,orb,sys);
-    Jx = @(x,par) mpbvp_Ju(x(1:end-N),x(end-N+1:end),par,orb,sys);
-    Jp = @(x,par,pi) mpbvp_Jp(x(1:end-N),x(end-N+1:end),par,orb,sys,pi);
+    f_psa = @(x) orb_mpbvp(x,orb,sys,pind);
 elseif lp == 2
     % Two parameter continuation
     if nargin < 4 || ~isfield(bifs,'type') || ~isfield(bifs,'ind')
         error('Insufficient bifurcation data for two parameter continuation')
-    else
-        bifs.pi = pind(1);
     end
-    switch bifs.type
-         case 1
-        % Add a grazing bifurcation condition
-         f = @(x,par) [mpbvp(x(1:end-N),x(end-N+1:end),par,orb,sys);...
-             mpbvp_gr(x(1:end-N),x(end-N+1:end),par,orb,sys,bifs.ind)];
-         Jx = @(x,par) [mpbvp_Ju(x(1:end-N),x(end-N+1:end),par,orb,sys);...
-             mpbvp_gr_Ju(x(1:end-N),x(end-N+1:end),par,orb,sys,bifs.ind)];
-         Jp = @(x,par,pi) [mpbvp_Jp(x(1:end-N),x(end-N+1:end),par,orb,sys,pi);...
-             mpbvp_gr_Jp(x(1:end-N),x(end-N+1:end),par,orb,sys,bifs.ind,pi)];
-         case 2
-        % Add a sliding bifurcation condition
-         f = @(x,par) [mpbvp(x(1:end-N),x(end-N+1:end),par,orb,sys);...
-             mpbvp_sl(x(1:end-N),x(end-N+1:end),par,orb,sys,bifs.ind)];
-         Jx = @(x,par) [mpbvp_Ju(x(1:end-N),x(end-N+1:end),par,orb,sys);...
-             mpbvp_sl_Ju(x(1:end-N),x(end-N+1:end),par,orb,sys,bifs.ind)];
-         Jp = @(x,par,pi) [mpbvp_Jp(x(1:end-N),x(end-N+1:end),par,orb,sys,pi);...
-             mpbvp_sl_Jp(x(1:end-N),x(end-N+1:end),par,orb,sys,bifs.ind,pi)];
-         case 3
-        % Add a user defined bifurcation condition
-         f = @(x,par) [mpbvp(x(1:end-N),x(end-N+1:end),par,orb,sys);...
-             bifs.f(x(1:end-N),x(end-N+1:end),par,orb,sys,bifs.ind,[],1)];
-         Jx = @(x,par) [mpbvp_Ju(x(1:end-N),x(end-N+1:end),par,orb,sys);...
-             bifs.f(x(1:end-N),x(end-N+1:end),par,orb,sys,bifs.ind,[],2)];
-         Jp = @(x,par,pi) [mpbvp_Jp(x(1:end-N),x(end-N+1:end),par,orb,sys,pi);...
-             bifs.f(x(1:end-N),x(end-N+1:end),par,orb,sys,bifs.ind,pi,3)];
-    end
+    f_psa = @(x) orb_mpbvp(x,orb,sys,pind,bifs);
 else
     error('Only one and two parameter continuation is supported');
 end
-funcs = struct('f',f,'Jx',Jx,'Jp',Jp); % for bif_loc_bisec.m
 
 % Output initialization
 br = struct('bif_p',[],'bif_type',[],'error',[],'mu_crit',[],'ds',[],'tg',[],...
     'U',[],'T',[],'p',[],'sig',orb.sig,'M',orb.M,'n',orb.n,'mu',[],'q',[]);
 branch = repmat(br,sum(opts.stop.n_step)+1,1);
 
-% Correct initial guess (first continuation point)
-if ~isfield(opts.nr,'logs') || opts.nr.logs 
-    fprintf('\nCorrect initial point\n')
-end
-if opts.psa.init_corr
-    if lp > 1
-        % At bifurcation points
-        [orb1,err] = orb_corr(orb,sys,opts,bifs);
-    else
-        % At regular points
-        [orb1, err] = orb_corr(orb,sys,opts);
-    end
+% Correct initial guess (first continuation point) and find an approximate
+% solution tangent vector
+if nargin < 4
+    [orb1,err,dy] = br12_init_corr(orb,sys,opts);
 else
-    orb1 = orb;
-    err = f([orb.U; orb.T],orb.p);
+    [orb1,err,dy] = br12_init_corr(orb,sys,opts,bifs);
 end
-x1 = [orb1.U; orb1.T];
+
+% Save the data of the first orbit
 i0 = opts.stop.n_step(1)+1;
 branch(i0).U = orb1.U;
 branch(i0).T = orb1.T;
@@ -222,39 +129,12 @@ branch(i0).error = norm(err);
 [branch(i0).mu, branch(i0).mu_crit,~] = orb_stab(branch(i0),sys);
 branch(i0).bif_type = 'Starting point';
 
-% Find second point to initialize tangent in pseudo-arclength method
-if ~isfield(opts,'nr') || ~isfield(opts.nr,'logs') || opts.nr.logs 
-    fprintf('Find a second point\n')
-end
-if opts.psa.init_corr
-    ds0 = opts.psa.tgi_ds*abs(opts.psa.ds0); %initial step
-    if lp>1
-        % In case of two parameter continuation
-        orb2 = orb1;
-        orb2.p(pind(2)) = orb2.p(pind(2))+ds0; % perturb parameter vector
-        orb2 = orb_corr(orb2,sys,opts,bifs);
-    else
-        % In case of one parameter continuation
-        orb2 = orb1;
-        orb2.p(pind) = orb2.p(pind)+ds0; % perturb parameter vector   
-        orb2 = orb_corr(orb2,sys,opts);
-    end
-    dy = [orb2.U;orb2.T;orb2.p(pind).']-[x1;orb1.p(pind).'];
-else
-    dy = [zeros(length(orb.U)+length(orb.T),1); ones(lp,1)];
-end
-
-% Initialize continuation run
-y_start = [x1; orb1.p(pind).'];  % starting point
-dy_start = 1/norm(dy)*dy;        % starting tangent vector
+% Initialize the continuation run
+y_start = [orb1.U; orb1.T; orb1.p(pind).'];  % starting point
+dy_start = 1/norm(dy)*dy; % starting tangent vector
 rt0 = tic;
-if isfield(sys,'q')
+if isfield(sys,'q') % user defined monitor functions
     branch(i0).q = feval(sys.q,y_start,orb,sys,pind);
-end
-if lp>size(opts.stop.p_lim,1)
-    p_lims = repmat(opts.stop.p_lim,2,1); % same limits used for all parameters unless specified otherwise
-else
-    p_lims = opts.stop.p_lim; % user defined continuation limits
 end
 
 % Cover both continuation directions
@@ -263,9 +143,9 @@ for dir = 1:2
     fprintf('\nContinuation of periodic orbits in direction %i\n',dir);
     y0 = y_start; dy = dy_start; % identical starting points
     if dir == 1
-        ds = -opts.psa.ds0; % positive continuation direction
+        ds = -opts.psa.ds0; % negative continuation direction
     else
-        ds = opts.psa.ds0; % negative continuation direction
+        ds = opts.psa.ds0; % positive continuation direction
     end
     
     % Continuation loops
@@ -283,205 +163,124 @@ for dir = 1:2
 
         % Make a Pseudo-Arclength step
         try
-            [y1,dy,tg,ds0,ds1] = ps_arc_step_adapt(y0,dy,p0,f,Jx,Jp,ds,opts);
+            [y1,dy,tg,ds0,ds1,err] = psa_step_adapt(y0,dy,f_psa,ds,opts);
+            bif_type = 0; % bifurcation flag (inactive by default)
         catch
             warning('Pseudo arclength method failed at step %i', i);
-            np(dir) = i-1;
-            break
+            bif_type = -2; % bifurcation flag (non convergent solution)
         end
 
-        % Fill up a temporary orbit data structure
-        p1 = pl_insert(p0,y1(end-lp+1:end),pind);
-        err = norm(f(y1(1:end-lp),p1));
-        orb_ii = branch(ii);
-        orb_ii.U = y1(1:end-N-lp);
-        orb_ii.T = y1(end-N-lp+1:end-lp);
-        orb_ii.p = p1;
-        bif_type = 0; % solution bifurcation flag
-    
-        % Warn/stop in case of nonconvergent solutions
-        if err > opts.nr.abstol*1e3
+        % Warn/stop in case of non-convergent solutions
+        if bif_type > -2 && norm(err) > opts.nr.abstol*1e3
             warning('Solution in br12_cont_adapt did not converge at step %i',i);
             if opts.stop.conv
-                bif_type = -1;
-                np(dir) = i; % omit last found orbit
+                bif_type = -2;
             end
         end
 
         % Warn/stop in case of negative segment lengths
-        if any(orb_ii.T<0,'all') || any(isnan(orb_ii.T),'all')
+        Ti = y1(end-N-lp+1:end-lp);
+        if bif_type > -2 && (any(Ti<0,'all') || any(isnan(Ti),'all'))
             warning('Negative segment length encountered at step %i',i);
-            [~,vi] = min(orb_ii.T);
+            [~,vi] = min(Ti);
             branch(ii).bif_type = sprintf('Negative segment at index %i',vi);
             if opts.stop.Tneg
                 bif_type = -1;
-                np(dir) = i;  % omit last found orbit
             end
         end
 
-        % Check for leaving the prescribed bifurcation parameter domain
-        p_diff = [orb_ii.p(pind).'-p_lims(:,1);...
-            -orb_ii.p(pind).' + p_lims(:,2)];
-        if any(p_diff < 0,'all')
-            branch(ii).bif_type = sprintf('Parameter domain boundary');
-            fprintf('   -> Parameter domain boundary reached at step %i\n',i);
-            % Correct final point to be exactly on the boundary
-            [~,vi] = min(abs(p_diff));
-            opts_temp = opts; opts_temp.nr.logs = false;
-            if lp > 1
-                % At bifurcation points
-                bifs_temp = bifs;
-                switch vi
-                    case 1
-                        orb_ii.p(pind(1)) = p_lims(1,1);
-                        bifs_temp.pi = pind(2);
-                    case 2
-                        orb_ii.p(pind(2)) = p_lims(2,1);
-                        bifs_temp.pi = pind(1);
-                    case 3
-                        orb_ii.p(pind(1)) = p_lims(1,2);
-                        bifs_temp.pi = pind(2);
-                    case 4
-                        orb_ii.p(pind(2)) = p_lims(2,2);
-                        bifs_temp.pi = pind(1);
-                end
-                [orb_ii,errb] = orb_corr(orb_ii,sys,opts_temp,bifs_temp);
+        % Terminate the continuation run on parameter boundaries
+        if bif_type == 0
+            if nargin < 4
+                [bif_type,orb_temp,errb] = br12_bound_corr(y1,orb,...
+                    opts,sys);
             else
-                % At regular points
-                orb_ii.p(pind) = p_lims(vi);
-                [orb_ii,errb] = orb_corr(orb_ii,sys,opts_temp);
+                [bif_type,orb_temp,errb] = br12_bound_corr(y1,orb,...
+                    opts,sys,bifs);
             end
-            err = norm(errb);
-            np(dir) = i;
+            if bif_type == -1
+                fprintf('   -> Parameter domain boundary reached at step %i\n',i);
+                branch(ii).bif_type = sprintf('Parameter domain boundary');
+                err = errb;
+            end
+        else
+            orb_temp.U = y1(1:end-N-lp);
+            orb_temp.T = y1(end-N-lp+1:end-lp); 
+            orb_temp.p = orb.p;
+            orb_temp.p(pind) = y1(end-lp+1:end);
         end
 
-        % Evaluate orbit stability
-        if bif_type >= 0 && i < np(dir)
-            [mu_ii, mu_crit_ii, ~] = orb_stab(orb_ii,sys);
-            sc_cond = (1+opts.nr.abstol-abs(branch(ii0).mu_crit))*...
-                (1+opts.nr.abstol-abs(mu_crit_ii))<0;
-        else
-            mu_ii = []; mu_crit_ii = [];
-            sc_cond = false;
-        end
-        
-        % Mark changes in stability
-        if sc_cond
-            if abs(imag(mu_crit_ii))>opts.nr.abstol
-                branch(ii).bif_type = 'Stability change (Hopf)';
-            elseif real(mu_crit_ii)>0
-                branch(ii).bif_type = 'Stability change (Saddle node)';
+        % Run bifurcation detection routines
+        if bif_type == 0 && i > 1
+            if nargin < 4
+                [bif_type,orb_temp] = bif_ev_detect(i,y0,y1,branch(ii0),...
+                    sys,opts);
             else
-                branch(ii).bif_type = 'Stability change (Period doubling)';
+                [bif_type,orb_temp] = bif_ev_detect(i,y0,y1,branch(ii0),...
+                    sys,opts,bifs);
             end
-            fprintf('   -> Change in stability detected at step %i\n',i);
-            % Stop continuation if necessary
-            if opts.stop.stab_ch
-                bif_type = 5;
-                np(dir) = i;
-            end
-        end
-
-        % Auxiliary monitor functions
-        if i < np(dir) && isfield(sys,'q')
-            branch(ii).q = feval(sys.q,y1,orb,sys,pind);
-            if any(branch(ii).q .* branch(ii0).q<0)
-                branch(ii).bif_type = 'Sign change in user defined monitor function';
-                fprintf('   -> User defined zero crossing detected at step %i\n',i);
-                if opts.stop.user_q
-                    bif_type = 4;
-                    np(dir) = i;
-                end
-            end
-        end
-        
-        % Check for grazing events
-        if nargin < 4
-            [graze,g_int,g_ind] = po_graze_det(y0,y1,orb,sys,opts.stop);
-        else
-            [graze,g_int,g_ind] = po_graze_det(y0,y1,orb,sys,opts.stop,bifs);
-        end
-        if i < np(dir) && graze
-            if g_int
-                branch(ii).bif_type = sprintf('Interior grazing (in event condition %i)',g_ind);
-            else
-                branch(ii).bif_type = sprintf('Exterior grazing (at event %i)',g_ind);
-            end
-            fprintf('   -> Grazing bifurcation detected at step %i\n',i);
-            if (opts.stop.int_gr && g_int) || (opts.stop.ext_gr && ~g_int)
-                bif_type = 1;
-                np(dir) = i;
-            end
-        end
-        
-        % Check for sliding events
-        if nargin < 4
-            [slide,s_ind] = po_slide_det(y1,orb,sys,opts.stop);
-        else
-            [slide,s_ind] = po_slide_det(y1,orb,sys,opts.stop,bifs);
-        end
-        if i < np(dir) && slide
-            branch(ii).bif_type = sprintf('Boundary sliding (at event %i)',s_ind);
-            fprintf('   -> Sliding bifurcation detected at step %i\n',i);
-            if opts.stop.slide
-                bif_type = 2;
-                np(dir) = i;
-            end
-        end
-        
-        % Check orbits for vanishing segments
-        vi = find(branch(ii).T<opts.stop.va_tol*max(branch(ii).T)); % index of vanishing segments
-        if i < np(dir) && ~isempty(vi)
-            branch(ii).bif_type = sprintf('Vanishing segment at index %i',vi(1));
-            fprintf('   -> Vanishing segment detected at step %i\n',i);
-            bif_type = 4;
-            np(dir) = i;
-        end
-
-        % Check for fold points
-        if i>1 % only from the second point on
+            branch(ii).bif_type = orb_temp.bif_type;
+            % Check for fold points
             if tg(2:end).'*branch(iim).tg(2:end) < 0
-                branch(ii0).bif_type = 'Fold point';
+                branch(ii0).bif_type = [branch(ii0).bif_type ' (Fold point)'];
                 fprintf('   -> Fold point detected at step %i\n',i);
             end
+        elseif bif_type > -2
+            % Evaluate orbit stabilty without bifurcation search
+            [orb_temp.mu, orb_temp.mu_crit, ~] = orb_stab(orb_temp,sys);
         end
 
         % Do a bisection search for the bifurcation point if the run is
         % about to terminated
-        if np(dir) == i && bif_type > 0
+        if bif_type > 0
             try
                 if nargin < 4
-                    [orbb,dsb,errb,~] = bif_loc_bisec(branch(ii0),dy,ds0,...
-                        funcs,sys,bif_type,opts);
+                    [orbb,dsb,errb] = bif_loc_bisec(branch(ii0),dy,ds0,...
+                        f_psa,sys,bif_type,opts);
                 else
-                    [orbb,dsb,errb,~] = bif_loc_bisec(branch(ii0),dy,ds0,...
-                        funcs,sys,bif_type,opts,bifs);
+                    [orbb,dsb,errb] = bif_loc_bisec(branch(ii0),dy,ds0,...
+                        f_psa,sys,bif_type,opts,bifs);
                 end
             catch
                 errb = inf;
             end
-            if errb > 10*opts.nr.abstol || any(orbb.T<0,'all')
+            if norm(errb) > 10*opts.nr.abstol || any(orbb.T<0,'all')
                 warning('Bisection search for bifurcation point failed!')
             else
                 % If successful overwrite the last continuation point
-                orb_ii = orbb;
-                err = errb;
-                ds0 = dsb;
-                [mu_ii, mu_crit_ii, ~] = orb_stab(orb_ii,sys);
+                [orbb.mu, orbb.mu_crit, ~] = orb_stab(orbb,sys);
+                orb_temp = orbb; err = errb; ds0 = dsb;
             end
 
         end
 
+        % Evaluate the user defined monitor function if it has not been done already
+        if isfield(sys,'q') && ~isfield(orb_temp,'q')
+            orb_temp.q = feval(sys.q,y1,orb,sys,pind);
+        end
+
         % Save orbit data
-        branch(ii).U = orb_ii.U;
-        branch(ii).T = orb_ii.T;
-        branch(ii).p = orb_ii.p;
-        branch(ii).bif_p = orb_ii.p(pind);
-        branch(ii0).tg = tg;
-        branch(ii).ds = ds0;
-        branch(ii).error = err;
-        branch(ii).mu = mu_ii;
-        branch(ii).mu_crit = mu_crit_ii;
+        if bif_type > -2
+            branch(ii).U = orb_temp.U;
+            branch(ii).T = orb_temp.T;
+            branch(ii).p = orb_temp.p;
+            branch(ii).bif_p = orb_temp.p(pind);
+            branch(ii).error = norm(err);
+            branch(ii0).tg = tg;
+            branch(ii).ds = ds0;
+            branch(ii).mu = orb_temp.mu;
+            branch(ii).mu_crit = orb_temp.mu_crit;
+            if isfield(sys,'q')
+                branch(ii).q = orb_temp.q;
+            end
+        else
+            np(dir) = i-1; % omit the last failed solution point
+        end
+
+        % Stop the continuation run at terminal events
+        if bif_type ~= 0 && bif_type ~= -2
+            np(dir) = i;
+        end
             
         % Update last solution point
         y0 = y1;

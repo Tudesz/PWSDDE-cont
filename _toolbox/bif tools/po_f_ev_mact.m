@@ -31,11 +31,12 @@ Ti0 = y(end-N-lp+1:end-lp);
 if nargin<7
     res = M;
     [~,x0] = bvp2sig(y(1:end-N-lp),Ti0,M);
-    [x0_tau,~,~,~] = po_delay_interp(y(1:end-N-lp),Ti0,p0,M,sys);
+    del0 = po_delay_interp(y(1:end-N-lp),Ti0,p0,M,sys);
 else
     [~,x0] = bvp2sig(y(1:end-N-lp),Ti0,M,res);
-    [x0_tau,~,~,~] = po_delay_interp(y(1:end-N-lp),Ti0,p0,M,sys,res);
+    del0 = po_delay_interp(y(1:end-N-lp),Ti0,p0,M,sys,res);
 end
+x0_tau = del0.ud;
 
 % Evaluate user defined function at active points
 X = zeros(res*N,1);

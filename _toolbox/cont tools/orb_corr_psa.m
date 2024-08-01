@@ -1,4 +1,4 @@
-function [orb_c,err] = orb_corr_psa(orb,sys,opts)
+function [orb_c,err] = orb_corr_psa(orb,sys,opts,bifs)
 %ORB_CORR_PSA: Correct solution guess with a single pseudo-archlength step
 % Input:
 %   orb: starting periodic orbit data structure
@@ -25,6 +25,12 @@ function [orb_c,err] = orb_corr_psa(orb,sys,opts)
 %      -> abstol: iteration stopping condition in error norm (default 1e-10)
 %      -> maxiter: maximum number of iteration steps  (default 10)
 %      -> plots: if true plot progress of error function (default false) 
+%   bifs: extra data for finding bifurcation points (optional input)
+%    -> type: 1) grazing 2) sliding 3) user defined bifurcation
+%    -> ind: index of the bifurcation event in the solution signature
+%    -> pi: index of a free system parameter to be corrected
+%    -> f: function describing the user defined zero condition and 
+%       its Jacobains (only required if bifs.type==3)
 % Output:
 %   orb_c: data structure of the corrected periodic orbit
 %    -> sig: sloution signature (event list)
@@ -35,31 +41,39 @@ function [orb_c,err] = orb_corr_psa(orb,sys,opts)
 %    -> M: Chebyshev mesh resolution
 %   err: MP-BVP error at its last evaluation
 
-if nargin<3 || ~isfield(opts,'nr') || ~isfield(opts.nr,'logs')
-    opts.nr.logs = true; % log iteration progress by default
-end
-
 % check solution signature
 check_sig(orb,sys);
 
+% for backwards compatibility
+opts.psa.pi = opts.pi;
+opts.psa.ds = opts.ds;
+
 % Function set initialization
-pind = opts.psa.pi;     % continuation parameter index
-N = length(orb.sig);    % number of smooth segments
-f = @(x,par) mpbvp(x(1:end-N),x(end-N+1:end),par,orb,sys);
-Jx = @(x,par) mpbvp_Ju(x(1:end-N),x(end-N+1:end),par,orb,sys);
-Jp = @(x,par,pi) mpbvp_Jp(x(1:end-N),x(end-N+1:end),par,orb,sys,pi);
+pind = opts.psa.pi; % continuation parameter index
+lp = length(pind);  % number of continuation parameters
+N = length(orb.sig);% number of smooth segments
+if nargin < 4
+    % Regular solution points
+    func = @(x) orb_mpbvp(x,orb,sys,pind);
+else
+    % Bifurcation points
+    func = @(x) orb_mpbvp(x,orb,sys,pind,bifs);
+end
 
 % Make a Pseudo-Arclength step
+if opts.c_logs
+    fprintf('\nCorrect solution guess with a psa step\n')
+    opts.nr.logs = true;
+end
 y0 = [orb.U; orb.T; orb.p(pind).'];
 dy = zeros(length(y0),1); dy(end) = 1;       
-[y1,~,~] = ps_arc_step(y0,dy,orb.p,f,Jx,Jp,opts);
+[y1,~,~,err] = psa_step(y0,dy,func,opts);
 
 % Output structure
 orb_c = orb;
-orb_c.U = y1(1:end-N-1);
-orb_c.T = y1(end-N-1+1:end-1);
-orb_c.p = pl_insert(orb.p,y1(end),pind);
-err = norm(f(y1(1:end-1),orb_c.p));
+orb_c.U = y1(1:end-N-lp);
+orb_c.T = y1(end-N-lp+1:end-lp); 
+orb_c.p(pind) = y1(end-lp+1:end);
 
 % Check for invalid output
 if any(orb_c.T<0,'all')

@@ -1,12 +1,10 @@
-function [x1,dx1,tg] = ps_arc_step(x0,dx0,par,f,Ju,Jp,opts)
+function [x1,dx1,tg,err] = psa_step(x0,dx0,funcs,opts)
 %PS_ARC_STEP Continuation step with the pseudo-arclength method
 % Input:
 %   x0: initial extended state vector [u; p]
 %   dx0: guess for solution tangent
-%   par: parameter vector
-%   f(x,p): governing system of nonlinear equations
-%   Ju(x,p): Jacobian of f wrt state variables (u)
-%   Jp(x,p,pi): Jacobian of f wrt bifurcation parameter
+%   funcs: a function, which returns the governing NAE and its Jacobian wrt
+%       state variables and continuation parameters: [F(x), JF(x)]
 %   opts: continuation run options
 %    -> psa: pseudo-arclength method parameters
 %      -> ds: arclength stepsize
@@ -21,21 +19,17 @@ function [x1,dx1,tg] = ps_arc_step(x0,dx0,par,f,Ju,Jp,opts)
 %   x1: new solution point [u; p]
 %   dx1: corrected solution tangent
 %   tg: solution tangent in solution norm
+%   err: solver error at the last finished correction step
 
 % initialization
 ds = opts.psa.ds;
 pind = opts.psa.pi;
 lp = length(pind);
 
- % inserting p in the system parameter vector
-par_p = @(x) pl_insert(par,x(end-lp+1:end),pind);
-
 % Solution tangent vector at x0
-Ju0 = Ju(x0(1:end-lp),par_p(x0));
-Jp0 = Jp(x0(1:end-lp),par_p(x0),pind);
-dfe = @(x) [Ju0 * x(1:end-lp) + Jp0 * x(end-lp+1:end); sum(x.^2) - 1];
-dJe = @(x) [Ju0, Jp0; 2*x.'];
-dx1 = newton_iter(dx0,dfe,dJe,opts.nr);
+[~,JF0] = funcs(x0);
+sol_tan = @(x) deal([JF0*x; sum(x.^2) - 1], [JF0; 2*x.']);
+dx1 = newton_iter(dx0,sol_tan,opts.nr);
 
 % Predictor step
 xp = x0 + ds * dx1; 
@@ -43,9 +37,14 @@ tg = [norm(xp(1:end-lp)) - norm(x0(1:end-lp)); ...
     xp(end-lp+1:end) - x0(end-lp+1:end)];
 
 % Corrector step
-fe = @(x) [f(x(1:end-lp),par_p(x)); dx1.'*(x-x0)-ds];
-Je = @(x) [Ju(x(1:end-lp),par_p(x)), ...
-    Jp(x(1:end-lp),par_p(x),pind); dx1.'];
-x1 = newton_iter(xp,fe,Je,opts.nr); % new solution
+corr = @(x) sol_corr(x,funcs,x0,dx1,ds);
+[x1,err,~] = newton_iter(xp,corr,opts.nr);
 
+end
+
+% Auxiliary function for the corrector step
+function [F,JF] = sol_corr(x,funcs,x0,dx,ds)
+    [F0, JF0] = funcs(x); % base system without psa condition
+    F = [F0; dx.'*(x-x0)-ds];
+    JF = [JF0; dx.'];
 end

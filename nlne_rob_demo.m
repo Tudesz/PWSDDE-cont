@@ -8,7 +8,8 @@ warning off backtrace
 
 % Dependencies
 addpath(genpath('_toolbox'))
-addpath('pwsdde cont','plot tools')
+addpath(genpath('pwsdde cont'))
+addpath(genpath('plot tools'))
 
 % Default plot options
 set(0, 'DefaultLineLineWidth', 1);
@@ -67,7 +68,7 @@ figure(); plot_orb(orb1,sys,'nlne_rob_p'); title('Corrected orbit');
 %% Follow the periodic orbit in a system parameter
 
 % Follow periodic orbits in k
-opts1.pi = 5; % index of k in p0
+opts1 = br12_opts(5); % index of k in p0
 opts1.stop.p_lim = [0.435 inf]; % [k_min k_max]
 opts1.psa.ds_lim = [1e-3 0.1]; % [ds_min ds_max]
 branch1 = br12_cont_adapt(orb1,sys,opts1);
@@ -81,8 +82,7 @@ branch1 = br12_cont_adapt(orb1,sys,opts1);
 [~,~,~,~,ibif] = get_br_data(branch1,opts1.pi); % find the index of the saddle node
 pert_opts.type = 2; % perturbation type (saddle node, in this case it is a pitchfork scenario)
 orb2 = bif_orb_perturb(branch1(ibif.i_sc),sys,pert_opts); % perturb the orbit
-corr_opts.psa.ds = 1e-5; % stepsize used in orbit correction
-corr_opts.psa.pi = 5; % free parameter index during correction (in k)
+corr_opts = br12_opts(5,1e-5);  % correction in k with ds = 1e-5
 orb2c = orb_corr_psa(orb2,sys,corr_opts); % correct via a psa step
 
 % Follow the new branch of periodic orbits in k
@@ -96,11 +96,11 @@ branch2 = br12_cont_adapt(orb2c,sys,opts2);
 %% Plot continuation results
 
 % Combined bifurcation diagram
-pind = 5; u_i = 1;
+pind = 5; uind = 1;
 figure();
-plot_br1_ampl(branch1,pind,u_i,1); hold on
-plot_br1_ampl(branch2,pind,u_i,1); hold off
-xlabel('$w$'); ylabel('$|u|$'); title('Continuation results')
+plot_br1_ampl(branch1,pind,uind,1); hold on
+plot_br1_ampl(branch2,pind,uind,1); hold off
+xlabel('$w$'); ylabel('$|x_1|$'); title('Continuation results')
 
 
 %% Recreate the first branch using COCO

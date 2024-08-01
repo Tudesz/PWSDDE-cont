@@ -1,4 +1,4 @@
-function Jgr = mpbvp_gr_Ju(U,T,p,orb,sys,gr_ind)
+function Jgr = mpbvp_gr_Ju(U,T,p,orb,sys,del,gr_ind)
 %NSDDE_GR_BVP_JU Grazing condition Jacobian for a DDE piecewise-smooth 
 %periodic orbit
 % Input:
@@ -14,6 +14,12 @@ function Jgr = mpbvp_gr_Ju(U,T,p,orb,sys,gr_ind)
 %    -> e: event function, map and corresponding Jacobians
 %    -> tau: time delay and its parameter Jacobian
 %    -> tau_no: number of distinct time delays
+%   del: data structure of delayed term evaluations
+%    -> ud: state at t-tau(k) (n x nt x M*N*n) (ACCOUNTING FOR NEUTRAL DELAYS!)
+%    -> id: segment index of t-tau(k) mapped back between 0 and T (M*n*N x nt)
+%    -> fi: lagrange interpolation coefficients (M*n*N x nt x M)
+%    -> dT: derivative of the querry point wrt Ti without looping around 
+%       (M*n*N x nt x N x n_tau)
 %   gr_ind: index of grazing event
 % Output:
 %   Jgr: Jacobian of governing grazing condition (N*M*n+N x 1)
@@ -33,9 +39,12 @@ h_ej = @(j,x,xd) feval(sys.e,x,xd,p,orb.sig(j),1,0);  % event condition at ej
 Jh_ej = @(j,x,xd,i) feval(sys.e,x,xd,p,orb.sig(j),2,i); % event condition at ej
 td_type = @(i) feval(sys.tau,[],i,1);                    % delay type identifier
 
-% Evaluate current and delayed terms
+% Find current and delayed terms
 [~,us] = bvp2sig(U,T,M); % signal form of state vector
-[us_tau,i_tau,fi_tau,~,dT] = po_delay_interp(U,T,p,M,sys); % interpolation of delayed terms
+us_tau = del.ud; % interpolations of the delayed terms
+i_tau = del.id; % containing segment indices
+fi_tau = del.fi; % Lagrange interpolation coefficients
+dT = del.dT; % derivatives wrt segment lengths
 
 % Unpack relevant solution segment and evaluate event condition Jacobians
 ij = (gr_ind-1)*M*n+1:gr_ind*M*n; % in D and fg

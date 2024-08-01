@@ -17,6 +17,7 @@ function [orb_c,err] = orb_corr(orb,sys,opts,bifs)
 %    -> event_no: number of disctinc events
 %    -> tau_no: number of distinct time delays
 %   opts: numerical method parameters (optional input)
+%    -> c_logs: log iterations in initial correction steps (default true)
 %    -> jac: if true use provided Jacobian, else use fsolve (default true)
 %    -> nr: parameters of the employed newton Rhapson iteration
 %      -> logs: if true print progress of Newton iteration (default true)
@@ -40,76 +41,41 @@ function [orb_c,err] = orb_corr(orb,sys,opts,bifs)
 %    -> M: Chebyshev mesh resolution
 %   err: MP-BVP error at its last evaluation
 
-if nargin<3 || ~isfield(opts,'nr') || ~isfield(opts.nr,'logs')
-    opts.nr.logs = true; % log iteration progress by default
-end
-
 % check solution signature
 check_sig(orb,sys);
 
-% Function set initialization
-N = length(orb.sig); % number of smooth segments
+% default solver options
+if nargin < 3 || isempty(opts)
+    opts = corr_opts();
+end
 
+% Set initial values and define the corresponding NAE
 if nargin<4
     % Regular solution points
-    f = @(x) mpbvp(x(1:end-N),x(end-N+1:end),orb.p,orb,sys);
-    Jx = @(x) mpbvp_Ju(x(1:end-N),x(end-N+1:end),orb.p,orb,sys);
     x0 = [orb.U; orb.T];
-
+    func = @(x) orb_mpbvp(x,orb,sys);
 else
-    switch bifs.type
-        % Grazing bifurcation points
-        case 1
-             f = @(x,p) [mpbvp(x(1:end-N),x(end-N+1:end),p,orb,sys);...
-                 mpbvp_gr(x(1:end-N),x(end-N+1:end),p,orb,sys,bifs.ind)];
-             Jx = @(x,p) [mpbvp_Ju(x(1:end-N),x(end-N+1:end),p,orb,sys) ...
-                 mpbvp_Jp(x(1:end-N),x(end-N+1:end),p,orb,sys,bifs.pi);...
-                 mpbvp_gr_Ju(x(1:end-N),x(end-N+1:end),p,orb,sys,bifs.ind) ...
-                 mpbvp_gr_Jp(x(1:end-N),x(end-N+1:end),p,orb,sys,bifs.ind,bifs.pi)];       
-         % Sliding bifurcation point
-        case 2
-             f = @(x,p) [mpbvp(x(1:end-N),x(end-N+1:end),p,orb,sys);...
-                 mpbvp_sl(x(1:end-N),x(end-N+1:end),p,orb,sys,bifs.ind)];
-             Jx = @(x,p) [mpbvp_Ju(x(1:end-N),x(end-N+1:end),p,orb,sys) ...
-                 mpbvp_Jp(x(1:end-N),x(end-N+1:end),p,orb,sys,bifs.pi);...
-                 mpbvp_sl_Ju(x(1:end-N),x(end-N+1:end),p,orb,sys,bifs.ind) ...
-                 mpbvp_sl_Jp(x(1:end-N),x(end-N+1:end),p,orb,sys,bifs.ind,bifs.pi)];
-        case 3
-        % A user defined bifurcation condition
-             f = @(x,p) [mpbvp(x(1:end-N),x(end-N+1:end),p,orb,sys);...
-                 bifs.f(x(1:end-N),x(end-N+1:end),p,orb,sys,bifs.ind,[],1)];
-             Jx = @(x,p) [mpbvp_Ju(x(1:end-N),x(end-N+1:end),p,orb,sys) ...
-                 mpbvp_Jp(x(1:end-N),x(end-N+1:end),p,orb,sys,bifs.pi);...
-                 bifs.f(x(1:end-N),x(end-N+1:end),p,orb,sys,bifs.ind,[],2) ...
-                 bifs.f(x(1:end-N),x(end-N+1:end),p,orb,sys,bifs.ind,bifs.pi,3)];
-    end
+    % Bifurcation points
     x0 = [orb.U; orb.T; orb.p(bifs.pi)];
+    func = @(x) orb_mpbvp(x,orb,sys,bifs.pi,bifs);
 end
 
 % Newton iteration
-if opts.nr.logs && ~isfield(opts,'psa')
+if opts.c_logs
     fprintf('\nCorrect solution guess\n')
+    opts.nr.logs = true;
 end
-if nargin<4
-    % Simple solution point
-    if ~isfield(opts,'jac') || opts.jac
-        [x1,err] = newton_iter(x0, f, Jx, opts.nr);
-    else
-        [x1,err] = fsolve(f, x0);
-    end
+if ~isfield(opts,'jac') || opts.jac
+    % exploiting the analytic Jacobian
+    [x1,err] = newton_iter(x0, func, opts.nr);
 else
-    % Bifurcation point
-    par_p = @(x) pl_insert(orb.p,x(end),bifs.pi);
-    if ~isfield(opts,'jac') || opts.jac   
-        [x1,err] = newton_iter(x0, @(x)f(x(1:end-1),par_p(x)),...
-            @(x)Jx(x(1:end-1),par_p(x)),opts.nr);
-    else
-        [x1,err] = fsolve(@(x)f(x(1:end-1),par_p(x)),x0);
-    end
+    % relying on fsolve without a Jacobian
+    [x1,err] = fsolve(@(x) fsolve_trunc(x,func), x0);
 end
 
 % Output structure
 orb_c = orb;
+N = length(orb.sig);
 if nargin<4
     orb_c.U = x1(1:end-N);
     orb_c.T = x1(end-N+1:end);
@@ -126,3 +92,7 @@ end
 
 end
 
+% Auxiliary function for fsolve
+function err = fsolve_trunc(x,func)
+    [err,~] = func(x);
+end

@@ -1,5 +1,5 @@
 function  gr_cond = int_graze_det(U,T,p,orb,sys)
-%INT_GRAZE Interior grazing condition for event detection in periodic
+%INT_GRAZE_DET Interior grazing condition for event detection in periodic
 %orbits of PWS-DDEs
 % Input:
 %   U: free state variables (N*M*n)
@@ -29,7 +29,8 @@ h_ei = @(i,x,xd) feval(sys.e,x,xd,p,i,1,0);  % event condition at ej
 
 % Evaluate current and delayed terms
 [~,us] = bvp2sig(U,T,M); % signal form of state vector
-[us_tau,~,~,~,~] = po_delay_interp(U,T,p,M,sys); % interpolation of delayed terms
+del = po_delay_interp(U,T,p,M,sys); % interpolation of delayed terms
+us_tau = del.ud; 
 
 % Evaluate event conditions for all points
 for k=1:length(us)

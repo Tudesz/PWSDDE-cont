@@ -2,12 +2,13 @@ clear; clc; close all;
 warning off backtrace
 %% Example continuation problem of 2 a DoF impact Duffing oscillator
 % considering harmonic excitation and asymmetric air gaps
-% equation of motion shown in "impduff_def.m"
+% the equation of motion is detailed in "impduff_def.m"
 % using a nondimensionalized form and the old system definition structure
 
 % Dependencies
 addpath(genpath('_toolbox'))
-addpath('pwsdde cont','plot tools')
+addpath(genpath('pwsdde cont'))
+addpath(genpath('plot tools'))
 
 % Default plot options
 set(0, 'DefaultLineLineWidth', 1);
@@ -46,14 +47,14 @@ p0(1) = 0.7; sim_opts.t_end = 150*pi/p0(1);
 %% Follow periodic orbits in a system parameter
 
 % Continuation run 1)
-opts1.pi = 1; % index of om in p0
+opts1 = br12_opts(1); % index of om in p0
 branch1 = br12_cont_adapt(orb0,sys,opts1);
 % figure(); plot_br1_norm(branch1,opts1.pi,2);
 % figure(); plot_orb(branch1(1),sys,'impduff_p');
 % anim_br_orb(branch1,sys,'impduff_p')
 
 % Continuation run 2)
-opts2.pi = 1; % index of om in p0
+opts2 = br12_opts(1); % index of om in p0
 branch2 = br12_cont_adapt(orb1,sys,opts2);
 % figure(); plot_br1_norm(branch2,opts2.pi,2);
 % figure(); plot_orb(branch2(end),sys,'impduff_p');
@@ -66,7 +67,7 @@ branch2 = br12_cont_adapt(orb1,sys,opts2);
 [~,~,~,~,ibif] = get_br_data(branch1,opts1.pi); % indices of bifurcation points
 pert_opts.type = 2; % perturbation type (saddle node)
 orbpd = bif_orb_perturb(branch1(ibif.i_sc(1)),sys,pert_opts);
-corr_opts.psa.ds = 1e-5; corr_opts.psa.pi = 1;
+corr_opts = br12_opts(1,1e-5); % correction in om with ds = 1e-5
 orbpdc = orb_corr_psa(orbpd,sys,corr_opts); % correct via a psa step
 
 % Follow the new branch of periodic orbits in om
@@ -80,7 +81,7 @@ branch3 = br12_cont_adapt(orbpdc,sys,opts3);
 [~,~,~,~,ibif] = get_br_data(branch2,opts2.pi); % indices of bifurcation points
 pert_opts.type = 2; % perturbation type (saddle node)
 orbpd = bif_orb_perturb(branch2(ibif.i_sc(2)),sys,pert_opts);
-corr_opts.psa.ds = 1e-5; corr_opts.psa.pi = 1;
+corr_opts = br12_opts(1,1e-5);  % correction in om with ds = 1e-5
 orbpdc = orb_corr_psa(orbpd,sys,corr_opts); % correct via a psa step
 
 % Follow the new branch of periodic orbits in om
@@ -113,15 +114,15 @@ branch6 = br12_cont_adapt(orbgr,sys,opts6);
 %% Plot continuation results
 
 % combined bifurcation diagram
-pind = 1;
+pind = 1; uind = 1;
 figure();
-plot_br1_ampl(branch1,pind,1); hold on
-plot_br1_ampl(branch2,pind,1);
-plot_br1_ampl(branch3,pind,1);
-plot_br1_ampl(branch4,pind,1);
-plot_br1_ampl(branch5,pind,1);
-plot_br1_ampl(branch6,pind,1);
-hold off
+plot_br1_ampl(branch1,pind,uind); hold on
+plot_br1_ampl(branch2,pind,uind);
+plot_br1_ampl(branch3,pind,uind);
+plot_br1_ampl(branch4,pind,uind);
+plot_br1_ampl(branch5,pind,uind);
+plot_br1_ampl(branch6,pind,uind); hold off
+xlabel('$\omega$'); ylabel('$|x_1|$'); title('Continuation results')
 
 
 %% Recreate the first two branches with COCO

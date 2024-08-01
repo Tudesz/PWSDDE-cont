@@ -1,13 +1,11 @@
-function [x1,dx1,tg,ds0,ds1] = ps_arc_step_adapt(x0,dx0,par,f,Ju,Jp,ds,opts)
-%PS_ARC_STEP_ADAPT Adaptive cContinuation step with the pseudo-arclength
+function [x1,dx1,tg,ds0,ds1,err] = psa_step_adapt(x0,dx0,funcs,ds,opts)
+%PSA_STEP_ADAPT Adaptive cContinuation step with the pseudo-arclength
 %method
 % Input:
 %   x0: initial extended state vector [u; p]
 %   dx0: guess for solution tangent
-%   par: parameter vector
-%   f(x,p): governing system of nonlinear equations
-%   Ju(x,p): Jacobian of f wrt state variables (u)
-%   Jp(x,p,pi): Jacobian of f wrt bifurcation parameter
+%   funcs: a function, which returns the governing NAE and its Jacobian wrt
+%       state variables and continuation parameters: [F(x), JF(x)]
 %   ds: active stepsize
 %   opts: continuation run options
 %    -> pi: indicies of continuation parameters
@@ -25,6 +23,7 @@ function [x1,dx1,tg,ds0,ds1] = ps_arc_step_adapt(x0,dx0,par,f,Ju,Jp,ds,opts)
 %   tg: solution tangent in solution norm
 %   ds0: stepsize used (NaN if solution did not converge)
 %   ds1: suggested stepsize for the next psa step
+%   err: solver error at the last finished correction step
 
 % initialization
 pind = opts.pi;
@@ -39,15 +38,10 @@ if abs(ds) > opts.psa.ds_lim(2)
     ds = sign(ds)*opts.psa.ds_lim(2); % apply stepsize upper bound
 end
 
- % inserting p in the system parameter vector
-par_p = @(x) pl_insert(par,x(end-lp+1:end),pind);
-
 % Solution tangent vector at x0
-Ju0 = Ju(x0(1:end-lp),par_p(x0));
-Jp0 = Jp(x0(1:end-lp),par_p(x0),pind);
-dfe = @(x) [Ju0 * x(1:end-lp) + Jp0 * x(end-lp+1:end); sum(x.^2) - 1];
-dJe = @(x) [Ju0, Jp0; 2*x.'];
-dx1 = newton_iter(dx0,dfe,dJe,opts.nr);
+[~,JF0] = funcs(x0);
+sol_tan = @(x) deal([JF0*x; sum(x.^2) - 1], [JF0; 2*x.']);
+dx1 = newton_iter(dx0,sol_tan,opts.nr);
 
 % Obtaining a new solution with automatic stepsize reduction if needed
 while abs(ds) >= opts.psa.ds_lim(1)
@@ -58,10 +52,8 @@ while abs(ds) >= opts.psa.ds_lim(1)
         xp(end-lp+1:end) - x0(end-lp+1:end)];
     
     % Corrector step
-    fe = @(x) [f(x(1:end-lp),par_p(x)); dx1.'*(x-x0)-ds];
-    Je = @(x) [Ju(x(1:end-lp),par_p(x)), ...
-        Jp(x(1:end-lp),par_p(x),pind); dx1.'];
-    [x1,err,it] = newton_iter(xp,fe,Je,opts.nr); % new solution
+    corr = @(x) sol_corr(x,funcs,x0,dx1,ds);
+    [x1,err,it] = newton_iter(xp,corr,opts.nr);
 
     if norm(err) > opts.nr.abstol
         ds = ds/2;
@@ -87,5 +79,11 @@ elseif abs(ds1) > opts.psa.ds_lim(2)
     ds1 = sign(ds1)*opts.psa.ds_lim(2);
 end
 
+end
 
+% Auxiliary function for the corrector step
+function [F,JF] = sol_corr(x,funcs,x0,dx,ds)
+    [F0, JF0] = funcs(x); % base system without psa condition
+    F = [F0; dx.'*(x-x0)-ds];
+    JF = [JF0; dx.'];
 end

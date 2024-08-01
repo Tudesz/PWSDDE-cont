@@ -28,7 +28,7 @@ N = length(orb.sig);    % number of segments
 
 % Unpack solution vector
 lp = length(opts.pi);
-p0 = pl_insert(orb.p,y0(end-lp+1:end),opts.pi);
+p0 = orb.p; p0(opts.pi) = y0(end-lp+1:end);
 Ti0 = y0(end-N-lp+1:end-lp);
 
 % Function definitions
@@ -38,7 +38,8 @@ Jh_ej = @(j,x,xd) feval(sys.e,x,xd,p0,orb.sig(j),2,0);  % event condition jacobi
 
 % Evaluate current and delayed terms
 [~,x0] = bvp2sig(y0(1:end-N-lp),Ti0,M);
-[x0_tau,~,~,~] = po_delay_interp(y0(1:end-N-lp),Ti0,p0,M,sys);
+del0 = po_delay_interp(y0(1:end-N-lp),Ti0,p0,M,sys);
+x0_tau = del0.ud;
 
 % Span all segment boundaries
 for j = 1:N

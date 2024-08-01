@@ -21,9 +21,11 @@ end
 
 % Unpack orbit data
 [t0,x0] = bvp2sig(orb.U,orb.T,orb.M);
-xd0 = po_delay_interp(orb.U,orb.T,orb.p,orb.M,sys);
+del0 = po_delay_interp(orb.U,orb.T,orb.p,orb.M,sys);
+xd0 = del0.ud;
 [t1,x1] = bvp2sig(orb.U,orb.T,orb.M,res);
-xd1 = po_delay_interp(orb.U,orb.T,orb.p,orb.M,sys,res);
+del1 = po_delay_interp(orb.U,orb.T,orb.p,orb.M,sys,res);
+xd1 = del1.ud;
 
 % Plot the state wrt t or the outputs of fs
 if nargin<3 || isempty(fs)

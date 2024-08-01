@@ -1,4 +1,4 @@
-function [orb1,ds,err,q1] = bif_loc_bisec(orb0,dy0,ds0,funcs,sys,...
+function [orb1,ds,err] = bif_loc_bisec(orb0,dy0,ds0,funcs,sys,...
     bif_type,opts,bifs)
 %BIF_LOC_BISEC Bisection based bifurcation location routine for making
 %continuation run endpoints more accurate
@@ -13,10 +13,8 @@ function [orb1,ds,err,q1] = bif_loc_bisec(orb0,dy0,ds0,funcs,sys,...
 %   dy0: solution tangent vector at orb0
 %   ds0: stepsize used to identify a new orbit with a bifurcation
 %       condition validated starting from orb0
-%   funcs: functions that define the governing MP-BVP
-%    -> f: system of NAE-s
-%    -> Jx: NAE Jacobian
-%    -> Jp: NAE parameter Jacobian
+%   funcs: a function, which returns the governing NAE and its Jacobian wrt
+%       state variables and continuation parameters: [F(x), JF(x)]
 %   sys: names of the functions that define the system
 %    -> f: vector field and its Jacobians
 %    -> e: event function, map and corresponding Jacobians
@@ -29,11 +27,11 @@ function [orb1,ds,err,q1] = bif_loc_bisec(orb0,dy0,ds0,funcs,sys,...
 %       condition for the final point of the orbit is included 
 %       during mondoromy matrix formulation (default true)
 %   bif_type: type of bifurcation expected
-%       1) grazing
-%       2) sliding
-%       3) vanishing segment
-%       4) user defined monitor function zero crossing
-%       5) change in stability
+%       1) change in stability
+%       2) vanishing segment
+%       3) grazing
+%       4) sliding
+%       5) user defined monitor function zero crossing
 %   opts: numerical method parameters
 %    -> pi: indicies of continuation parameters (length of 1 or 2)
 %    -> psa: pseudo-arclength method parameters
@@ -63,7 +61,6 @@ function [orb1,ds,err,q1] = bif_loc_bisec(orb0,dy0,ds0,funcs,sys,...
 %    -> M: Chebyshev mesh resolution
 %   ds: used pseudo arclength stepsize at orb0
 %   err: mp-bvp solution error for orb1
-%   q1: evaluation of the user defined monitor function at orb1
 
 % Initialization
 N = length(orb0.sig);   % number of smooth segments
@@ -76,60 +73,56 @@ opts.psa.pi = pind;
 
 % Bisection loop
 y0 = [orb0.U; orb0.T; orb0.p(pind).']; % fix starting point
-p0 = orb0.p;
-if bif_type == 4
+if bif_type == 5
     q0 = feval(sys.q,y0,orb0,sys,pind);
 else
-    q1 = [];
+    q0 = [];
 end
-if bif_type == 5
-   [~, muc_0, ~] = orb_stab(orb0,sys);
+if bif_type == 1 && ~isfield(orb0,'mu_crit')
+   [~, orb0.mu_crit, ~] = orb_stab(orb0,sys);
 end
 
 while ds_step > ds_step_min
 
     % Find a new orbit with a psa step
     opts.psa.ds = ds;
-    [y1,~,~] = ps_arc_step(y0,dy0,p0,funcs.f,funcs.Jx,funcs.Jp,opts);
-    p1 = pl_insert(p0,y1(end-lp+1:end),pind);
-    err = norm(funcs.f(y1(1:end-lp),p1));
-    
+    [y1,~,~,err] = psa_step(y0,dy0,funcs,opts);
     orb1 = orb0;
     orb1.U = y1(1:end-N-lp);
     orb1.T = y1(end-N-lp+1:end-lp);
-    orb1.p = p1;
+    orb1.p(pind) = y1(end-lp+1:end);
 
     % Evaluate bifurcation condition for orb1
     switch bif_type
-        case 1 % Grazing bifurcation
-            if nargin<8
-                [bifc,~,~] = po_graze_det(y0,y1,orb0,sys,opts.stop);
+        case 1 % Stability change
+            [orb1.mu, orb1.mu_crit, ~] = orb_stab(orb1,sys);
+            if (1+opts.nr.abstol-abs(orb0.mu_crit))*...
+                (1+opts.nr.abstol-abs(orb1.mu_crit))<0
+                bifc = true;
             else
-                [bifc,~,~] = po_graze_det(y0,y1,orb0,sys,opts.stop,bifs);
+                bifc = false;
             end
-        case 2 % Sliding bifurcation
-            if nargin<8
-                [bifc,~] = po_slide_det(y1,orb0,sys,opts.stop);
-            else
-                [bifc,~] = po_slide_det(y1,orb0,sys,opts.stop,bifs);
-            end
-        case 3 % Vanishing segment
+        case 2 % Vanishing segment
              if ~isempty(find(orb1.T<opts.stop.va_tol*max(orb1.T),1))
                  bifc = true;
              else
                  bifc = false;
              end
-        case 4 % User defined monitor function
-            q1 = feval(sys.q,y1,orb0,sys,pind);
-            if any(q0 .* q1<0)
-                bifc = true;
+        case 3 % Grazing bifurcation
+            if nargin < 8
+                [bifc,~,~] = po_graze_det(y0,y1,orb0,sys,opts.stop);
             else
-                bifc = false;
+                [bifc,~,~] = po_graze_det(y0,y1,orb0,sys,opts.stop,bifs);
             end
-        case 5 % Stability change
-            [~, muc_1, ~] = orb_stab(orb1,sys);
-            if (1+opts.nr.abstol-abs(muc_0))*...
-                (1+opts.nr.abstol-abs(muc_1))<0
+        case 4 % Sliding bifurcation
+            if nargin < 8
+                [bifc,~] = po_slide_det(y1,orb0,sys,opts.stop);
+            else
+                [bifc,~] = po_slide_det(y1,orb0,sys,opts.stop,bifs);
+            end
+        case 5 % User defined monitor function
+            orb1.q = feval(sys.q,y1,orb0,sys,pind);
+            if any(q0 .* orb1.q < 0)
                 bifc = true;
             else
                 bifc = false;
@@ -146,8 +139,6 @@ while ds_step > ds_step_min
     
     % disp(ds)
 end
-
-% Solver error at orb1
 
 end
 

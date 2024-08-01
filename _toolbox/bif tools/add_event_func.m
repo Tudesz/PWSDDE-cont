@@ -1,4 +1,4 @@
-function X = add_event_func(U,T,p,orb,sys,bif_ind,lp,type,ev_id)
+function X = add_event_func(U,T,p,orb,sys,del,bif_ind,type,ev_id)
 %ADD_EVENT_FUNC Additional event condition for the continuation of double
 %events in PWS-DDE periodic orbits
 % Input:
@@ -14,8 +14,15 @@ function X = add_event_func(U,T,p,orb,sys,bif_ind,lp,type,ev_id)
 %    -> e: event function, map and corresponding Jacobians
 %    -> tau: time delay and its parameter Jacobian
 %    -> tau_no: number of distinct time delays
+%   del: data structure of delayed term evaluations
+%    -> ud: state at t-tau(k) (n x nt x M*N*n) (ACCOUNTING FOR NEUTRAL DELAYS!)
+%    -> id: segment index of t-tau(k) mapped back between 0 and T (M*n*N x nt)
+%    -> fi: lagrange interpolation coefficients (M*n*N x nt x M)
+%    -> dT: derivative of the querry point wrt Ti without looping around 
+%       (M*n*N x nt x N x n_tau)
+%    -> nd: index of the periodic orbit where the tq is found without 
+%       looping around (0 current, 1,2,... past orbits) (M*n*N x nt)
 %   bif_ind: index of the bifurcation in the solution signature
-%   lp: bifurcation parameter index (default all)
 %   type: flag for which property is requested:
 %       1, The function evaluation itself
 %       2, Jacobian wrt U and T
@@ -33,7 +40,10 @@ D0 = cheb_diff(M);          % base differentiation matrix
 x = x0(:,bif_ind*M);        % state at sliding event
 
 % Interpolation of delayed terms
-[x0_tau,i_tau,fi_tau,~,dT] = po_delay_interp(U,T,p,M,sys);
+x0_tau = del.ud; % interpolations of the delayed terms
+i_tau = del.id; % containing segment indices
+fi_tau = del.fi; % Lagrange interpolation coefficients
+dT = del.dT; % derivatives wrt segment lengths
 
 % Event condition and delay function initialization
 xd = squeeze(x0_tau(:,:,bif_ind*M));
@@ -80,10 +90,6 @@ switch type
             i_k = (i_tau(sl_ind*M,k)-1)*M*n+1:i_tau(sl_ind*M,k)*M*n;
             dtau_k = -1/T(i_tau(sl_ind*M,k))*tau_f(k,3);
             X = X + kron(ev_cond(2,k),dfi_k)*U(i_k)*dtau_k;
-        end
-        % Truncate if necessary
-        if ~isempty(lp)
-            X = X(lp);
         end
 end
 

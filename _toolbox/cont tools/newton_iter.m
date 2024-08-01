@@ -1,10 +1,10 @@
-function [x1,err,it] = newton_iter(x0,f,Jf,opts)
+function [x1,err,it] = newton_iter(x0,func,opts)
 %NEWTON_ITER Newton iteration routine for solving a system of nonlinear
 %equations
 % Input:
 %   x0: initial variable vector
-%   f: system of nonlinear equations f(x0) = 0
-%   Jf: jacobian of the system Jf(x0) = df(x)/dx at x0
+%   func: a function, which returns the NAE and its Jacobian: [F, JF]
+%      solving for F(x0) = 0, with JF(x0) = df(x)/dx at x0
 %   opts: solver options structure
 %    -> logs: if true print progress at each iteration step (default false)
 %    -> reltol: stopping condition on correction step norm (default 1e-7)
@@ -17,28 +17,9 @@ function [x1,err,it] = newton_iter(x0,f,Jf,opts)
 %   it: number of iteration steps used
 
 % Solver default options
-if nargin <4
-    opts.logs = false;      % no logging by default
-    opts.reltol = 1e-7;     % default for reltol>norm(x_i-x_{i-1})
-    opts.abstol = 1e-10;    % default for abstoltol>norm(err(x_i))
-    opts.maxiter = 10;      % defualt max iteration steps
-    opts.plots = false;     % no plotting by default
-else
-    if ~isfield(opts,'logs')
-        opts.logs = false;
-    end
-    if ~isfield(opts,'reltol')
-        opts.reltol = 1e-7;
-    end
-    if ~isfield(opts,'abstol')
-        opts.abstol = 1e-10;
-    end
-    if ~isfield(opts,'maxiter')
-        opts.maxiter = 10;
-    end
-    if ~isfield(opts,'plots')
-        opts.plots = false;
-    end
+if nargin < 3
+    opts = corr_opts();
+    opts = opts.nr;
 end
 
 % Initialize logs and plots
@@ -61,8 +42,8 @@ x1 = x0;
 for it = 1:opts.maxiter
     tic;
     % Solution correction
-    err = f(x1);
-    dx = -Jf(x1)\err;
+    [err,JF] = func(x1);
+    dx = -JF\err;
     x1 = x1 + dx;
     
     % Plot and log progress
