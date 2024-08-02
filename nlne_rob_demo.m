@@ -82,8 +82,8 @@ branch1 = br12_cont_adapt(orb1,sys,opts1);
 [~,~,~,~,ibif] = get_br_data(branch1,opts1.pi); % find the index of the saddle node
 pert_opts.type = 2; % perturbation type (saddle node, in this case it is a pitchfork scenario)
 orb2 = bif_orb_perturb(branch1(ibif.i_sc),sys,pert_opts); % perturb the orbit
-corr_opts = br12_opts(5,1e-5);  % correction in k with ds = 1e-5
-orb2c = orb_corr_psa(orb2,sys,corr_opts); % correct via a psa step
+psa_opts = br12_opts(5,1e-5);  % correction in k with ds = 1e-5
+orb2c = orb_corr_psa(orb2,sys,psa_opts); % correct via a psa step
 
 % Follow the new branch of periodic orbits in k
 opts2 = opts1; % samme options as previously

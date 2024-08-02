@@ -23,6 +23,7 @@ At first it is recommended to take a look at the four example continuation probl
 2) A periodic orbit may be initialized automatically from transient simulations using **sim_ns_dde.m**, or manually, by providing the required fields:
     - *sig*: solution signature stored as an event list (contains *id* identifiers for the **e( )** function)
     - *M*: Chebyshev mesh size (recommended 20)
+    - *n*: state dimension
     - *p*: parameter vector
     - *U*: state variable vector (discrete solution on the piecewise-Chebyshev mesh)
     - *T*: segment lengths (times between events)

@@ -67,8 +67,8 @@ branch2 = br12_cont_adapt(orb1,sys,opts2);
 [~,~,~,~,ibif] = get_br_data(branch1,opts1.pi); % indices of bifurcation points
 pert_opts.type = 2; % perturbation type (saddle node)
 orbpd = bif_orb_perturb(branch1(ibif.i_sc(1)),sys,pert_opts);
-corr_opts = br12_opts(1,1e-5); % correction in om with ds = 1e-5
-orbpdc = orb_corr_psa(orbpd,sys,corr_opts); % correct via a psa step
+psa_opts = br12_opts(1,1e-5); % correction in om with ds = 1e-5
+orbpdc = orb_corr_psa(orbpd,sys,psa_opts); % correct via a psa step
 
 % Follow the new branch of periodic orbits in om
 opts3 = opts1; % samme options as previously
@@ -81,8 +81,8 @@ branch3 = br12_cont_adapt(orbpdc,sys,opts3);
 [~,~,~,~,ibif] = get_br_data(branch2,opts2.pi); % indices of bifurcation points
 pert_opts.type = 2; % perturbation type (saddle node)
 orbpd = bif_orb_perturb(branch2(ibif.i_sc(2)),sys,pert_opts);
-corr_opts = br12_opts(1,1e-5);  % correction in om with ds = 1e-5
-orbpdc = orb_corr_psa(orbpd,sys,corr_opts); % correct via a psa step
+psa_opts = br12_opts(1,1e-5);  % correction in om with ds = 1e-5
+orbpdc = orb_corr_psa(orbpd,sys,psa_opts); % correct via a psa step
 
 % Follow the new branch of periodic orbits in om
 opts4 = opts1; % samme options as previously
