@@ -3,8 +3,6 @@ warning off backtrace
 %% Example continuation problem of a 1 DoF dry friction oscillator
 % using a nondimensionalized form of the governing equation of motion
 % artificial DDE formalism, phase shift cosidered as time delay
-% further details on the model are available in the appendix of:
-% ...
 
 % Dependencies
 addpath(genpath('_toolbox'))
@@ -64,6 +62,13 @@ sys.tau = 'fricosc_tau';    % time delays
 sys.mode_no = 3;            % number of modes
 sys.event_no = 9;           % number of possible events
 sys.tau_no = 1;             % number of time delays
+
+% use ODE definition for validation
+% sys.f = 'fricosc_f_ODE';    % vector field modes
+% sys.e = 'fricosc_e_ODE';    % event functions
+% sys.mode_no = 3;            % number of modes
+% sys.event_no = 9;           % number of possible events
+% sys.tau_no = 0;             % number of time delays
 
 
 %% Find a simple periodic orbit
