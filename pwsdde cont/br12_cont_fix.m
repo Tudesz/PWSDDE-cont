@@ -95,7 +95,6 @@ if nargin > 3
 end
 
 % Function set initialization
-% Function set initialization
 if lp == 1
     % One parameter continuation
     f_psa = @(x) orb_mpbvp(x,orb,sys,pind);
@@ -149,60 +148,30 @@ fprintf('\nContinuation of periodic orbits\n')
 for i = 2:np+1
     % Make a Pseudo-Arclength step
     try
-    [y1,dy,tg,err] = psa_step(y0,dy,f_psa,opts);
+        [y1,dy,tg,err] = psa_step(y0,dy,f_psa,opts);
+        bif_type = 0; % bifurcation flag (inactive by default)
     catch
         warning('Pseudo arclength method failed at step %i', i);
-        branch = branch(1:i-1);
-        break
+        bif_type = -2; % bifurcation flag (non convergent solution)
     end
 
-    % Warn/stop in case of nonconvergent solutions
-    if err > 1e2*opts.nr.abstol
-        warning('Solution in br12_cont did not converge at step %i',i);
-        if opts.stop.conv
-            branch = branch(1:i-1);
-            break
-        end
-    end
-    
-    % Save orbit data
-    branch(i).U = y1(1:end-N-lp);
-    branch(i).T = y1(end-N-lp+1:end-lp);
-    branch(i).bif_p = y1(end-lp+1:end);
-    branch(i).p(pind) = branch(i).bif_p;
-    branch(i-1).tg = tg;
-    branch(i).error = norm(err);
-
-    % Warn/stop in case of negative segment lengths
-    if any(branch(i).T<0,'all')
-        warning('Negative segment length encountered at step %i',i);
-        vi = find(branch(i).T<0);
-        branch(i).bif_type = sprintf('Negative segment at index %i',vi(1));
-        if opts.stop.Tneg
-            break
-        end
+    % Terminal error detection (negative segments, non convergence)
+    if bif_type > -2
+        [bif_type,~,branch(i).bif_type] = ...
+            br12_term_err(i,y1,err,orb,opts);
     end
 
-    % Evaluate orbit stability
-    [branch(i).mu, branch(i).mu_crit,~] = orb_stab(branch(i),sys);
-
-    % Check for leaving the prescribed bifurcation parameter domain
-    p_diff = [branch(i).bif_p-p_lims(:,1);...
-        -branch(i).bif_p + p_lims(:,2)];
-    if any(p_diff < 0,'all')
+    % Terminate the continuation run on parameter boundaries
+    p_diff = [y1(end-lp+1:end) - p_lims(:,1);...
+        -y1(end-lp+1:end) + p_lims(:,2)];
+    if bif_type == 0 && any(p_diff < 0,'all')
         branch(i).bif_type = sprintf('Parameter domain boundary');
         fprintf('   -> Parameter domain boundary reached at step %i\n',i);
-        break
-    end
-
-    % Check for fold points
-    if i > 2 && tg(2:end).'*branch(i-2).tg(2:end) < 0
-        branch(i-1).bif_type = [branch(i-1).bif_type ' (Fold point)'];
-        fprintf('   -> Fold point detected at step %i\n',i);
+        bif_type = -1;
     end
 
     % Run bifurcation detection routines
-    if i > 1
+    if bif_type == 0
         if nargin < 4
             [bif_type,orb_temp] = bif_ev_detect(i,y0,y1,branch(i-1),...
                 sys,opts);
@@ -211,9 +180,46 @@ for i = 2:np+1
                 sys,opts,bifs);
         end
         branch(i).bif_type = orb_temp.bif_type;
-        if bif_type > 0
-            break % stop at detected bifurcation points
+        % Check for fold points
+        if i > 2 && tg(2:end).'*branch(i-2).tg(2:end) < 0
+            branch(i-1).bif_type = [branch(i-1).bif_type ' (Fold point)'];
+            fprintf('   -> Fold point detected at step %i\n',i);
         end
+    elseif bif_type > -2
+        % Temporary data structure if no bifurcation detection is executed
+        orb_temp = orb;
+        orb_temp.U = y1(1:end-N-lp);
+        orb_temp.T = y1(end-N-lp+1:end-lp); 
+        orb_temp.p(pind) = y1(end-lp+1:end);
+        [orb_temp.mu, orb_temp.mu_crit, ~] = orb_stab(orb_temp,sys);
+    end
+
+    % Evaluate the user defined monitor function if it has not been done already
+    if isfield(sys,'q') && ~isfield(orb_temp,'q')
+        orb_temp.q = feval(sys.q,y1,orb,sys,pind);
+    end
+
+    % Save orbit data
+    if bif_type > -2
+        branch(i).U = orb_temp.U;
+        branch(i).T = orb_temp.T;
+        branch(i).p = orb_temp.p;
+        branch(i).bif_p = orb_temp.p(pind);
+        branch(i).error = norm(err);
+        branch(i-1).tg = tg;
+        branch(i).mu = orb_temp.mu;
+        branch(i).mu_crit = orb_temp.mu_crit;
+        if isfield(sys,'q')
+            branch(ii).q = orb_temp.q;
+        end
+    end
+
+    % Terminate the continuation run if necessary
+    if bif_type == -2
+        branch = branch(1:i-1); % omit last failed step
+    end
+    if bif_type ~= 0
+        break
     end
 
     % Update last solution point

@@ -76,6 +76,7 @@ if length(guess) == 1 && guess >0
         fprintf('%0.3f ',ev_t(i));
     end
     fprintf('%0.3f]\n',ev_t(end));
+    % disp(ev_t)
 elseif guess == 0
     ev_t = [0 T]; % convert the orbit to a single segment
 elseif guess == -1

@@ -4,7 +4,7 @@ function [type,orb1] = bif_ev_detect(si,y0,y1,orb0,sys,opts,bifs)
 % Input:
 %   si: index of the last continuation step
 %   y0: previous state vector with its bifurcation parameter [u0; Ti0; pi0]
-%   y1: current state vector with its bifurcation parameter [u0; Ti0; pi0]
+%   y1: current state vector with its bifurcation parameter [u1; Ti1; pi1]
 %   orb0: periodic orbit data structure from the previous orbit
 %    -> sig: solution signature (event list)
 %    -> U: solution vectors (M*N*n)
@@ -46,7 +46,7 @@ function [type,orb1] = bif_ev_detect(si,y0,y1,orb0,sys,opts,bifs)
 %       3) grazing
 %       4) sliding
 %       5) user defined monitor function zero crossing
-%   odata: orbit data to be included in the output structure
+%   orb1: orbit data to be included in the output structure
 %    -> U: solution vectors (M*N*n)
 %    -> T: solution segment lengths (N)
 %    -> p: system parameter vectors (l)
@@ -54,7 +54,8 @@ function [type,orb1] = bif_ev_detect(si,y0,y1,orb0,sys,opts,bifs)
 %    -> mu: Floquet multipliers
 %    -> q: auxiliary monitor function evaluations
 %    -> bif_type: bifurcation type if applicable, (possible types: 
-%       stability change, grazing, sliding, vanishing segment, fold point)
+%       stability change, grazing, sliding, vanishing segment, user 
+%       defined zero crossing)
 
 % Initialization
 N = length(orb0.sig);    % number of segments

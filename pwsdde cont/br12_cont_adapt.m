@@ -169,24 +169,11 @@ for dir = 1:2
             warning('Pseudo arclength method failed at step %i', i);
             bif_type = -2; % bifurcation flag (non convergent solution)
         end
-
-        % Warn/stop in case of non-convergent solutions
-        if bif_type > -2 && norm(err) > opts.nr.abstol*1e3
-            warning('Solution in br12_cont_adapt did not converge at step %i',i);
-            if opts.stop.conv
-                bif_type = -2;
-            end
-        end
-
-        % Warn/stop in case of negative segment lengths
-        Ti = y1(end-N-lp+1:end-lp);
-        if bif_type > -2 && (any(Ti<0,'all') || any(isnan(Ti),'all'))
-            warning('Negative segment length encountered at step %i',i);
-            [~,vi] = min(Ti);
-            branch(ii).bif_type = sprintf('Negative segment at index %i',vi);
-            if opts.stop.Tneg
-                bif_type = -1;
-            end
+        
+        % Terminal error detection (negative segments, non convergence)
+        if bif_type > -2
+            [bif_type,conv,branch(ii).bif_type] = ...
+                br12_term_err(i,y1,err,orb,opts);
         end
 
         % Terminate the continuation run on parameter boundaries
@@ -232,7 +219,7 @@ for dir = 1:2
 
         % Do a bisection search for the bifurcation point if the run is
         % about to terminated
-        if bif_type > 0
+        if bif_type > 0 && conv
             try
                 if nargin < 4
                     [orbb,dsb,errb] = bif_loc_bisec(branch(ii0),dy,ds0,...

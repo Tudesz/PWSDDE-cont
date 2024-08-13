@@ -65,12 +65,20 @@ if opts.c_logs
     fprintf('\nCorrect solution guess\n')
     opts.nr.logs = true;
 end
-if ~isfield(opts,'jac') || opts.jac
+if opts.c_jac
     % exploiting the analytic Jacobian
     [x1,err] = newton_iter(x0, func, opts.nr);
 else
     % relying on fsolve without a Jacobian
-    [x1,err] = fsolve(@(x) fsolve_trunc(x,func), x0);
+    if ~opts.c_logs
+        fopts = optimoptions('fsolve','Display','none');
+    elseif ~opts.nr.plots
+        fopts = optimoptions('fsolve','Display','iter');
+    else
+        fopts = optimoptions('fsolve','Display','iter',...
+            'PlotFcn','optimplotfval');
+    end
+    [x1,err] = fsolve(@(x) fsolve_trunc(x,func), x0, fopts);
 end
 
 % Output structure
