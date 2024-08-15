@@ -89,7 +89,7 @@ for j = 1:N
         else
             % Boundary points
             df(k,:) = reshape(Jg_ej(j,ut,utau,0),1,[]); % event map
-            Jh(j,ij(M:M:end)) = Jh(j,ij(M:M:end)) + Jh_ej(j,ut,utau,0);  % event condition
+            Jh(j,ij(M:M:end)) = Jh(j,ij_k) + Jh_ej(j,ut,utau,0);  % event condition
         end
 
         % Delayed terms wrt u(t-tau)

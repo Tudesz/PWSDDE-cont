@@ -34,6 +34,8 @@ function [type,orb,err] = br12_bound_corr(y0,orb0,opts,sys,bifs)
 %      -> p_lim: limits of the continuation paramters p(pind) [p_min p_max]
 %           can use separate limits in two parameter continuation (2x2)
 %           (default [-inf inf])
+%    -> nr: parameters of the employed Newton iteration 
+%      -> abstol: iteration stopping condition in error norm (default 1e-10)
 %   bifs: extra data for two parameter continuation (optional input)
 %    -> type: 1) grazing 2) sliding
 %    -> ind: index of bifurcation event in the solution signature
@@ -104,8 +106,10 @@ if any(p_diff < 0,'all')
 end
 
 % Evaluate the stability of the new orbit
-if type > -2
+if type > -2 && norm(err) < opts.nr.abstol*1e3
     [orb.mu, orb.mu_crit, ~] = orb_stab(orb,sys);
+else
+    orb.mu = []; orb.mu_crit = [];
 end
 
 end

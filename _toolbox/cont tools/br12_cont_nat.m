@@ -147,13 +147,7 @@ for i = 2:np+1
         [bif_type,~,branch(i).bif_type] = ...
             br12_term_err(i,y1,err,orb,opts);
     end
-
-    % Stop in case of NAN solutions
-    if any(isnan(y1),'all')
-        warning('NAN solution detected at step %i',i);
-        bif_type = -2;
-    end
-
+    
     % Terminate the continuation run on parameter boundaries
     p_diff = [y1(end-lp+1:end) - p_lims(:,1);...
         -y1(end-lp+1:end) + p_lims(:,2)];

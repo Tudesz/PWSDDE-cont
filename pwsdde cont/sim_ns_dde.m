@@ -202,7 +202,7 @@ fprintf('   Simulation time: %0.3f s\n',toc(rt));
 
 end
 
-% Auxilarry event functions
+% Auxiliary event functions
 function [value,isterminal,direction] = event_func(y,Z,sys,par,mode,h_act)
     % Checking event surface conditions
     value = ones(1,sys.event_no);
@@ -215,7 +215,7 @@ function [value,isterminal,direction] = event_func(y,Z,sys,par,mode,h_act)
     direction = zeros(1,sys.event_no); % don't check crossing direction
 end
 
-% Auxilarry history function
+% Auxiliary history function
 function y = history_func(t,y1,y0,sols,tis)
     % Check which segment contains y(t)
     if t<=tis(1)

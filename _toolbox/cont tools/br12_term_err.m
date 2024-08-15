@@ -57,5 +57,11 @@ if type > -2 && (any(Ti<0,'all') || any(isnan(Ti),'all'))
     end
 end
 
+% Stop in case of NAN solutions
+if any(isnan(y1),'all')
+    warning('NAN solution detected at step %i',si);
+    type = -2;
+end
+
 end
 

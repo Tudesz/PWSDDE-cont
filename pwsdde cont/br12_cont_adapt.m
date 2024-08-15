@@ -190,7 +190,7 @@ for dir = 1:2
                 branch(ii).bif_type = sprintf('Parameter domain boundary');
                 err = errb;
             end
-        else
+        elseif bif_type > -2
             orb_temp.U = y1(1:end-N-lp);
             orb_temp.T = y1(end-N-lp+1:end-lp); 
             orb_temp.p = orb.p;
@@ -270,8 +270,10 @@ for dir = 1:2
         end
             
         % Update last solution point
-        y0 = y1;
-        ds = ds1;
+        if bif_type == 0
+            y0 = y1;
+            ds = ds1;
+        end
         
         % Log progress
         if mod(i,ceil(np(dir)/10))==0
