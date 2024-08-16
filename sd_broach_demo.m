@@ -89,6 +89,7 @@ figure(); plot_res(res,1); title('Transient simulation result');
 % Correct solution guess with Newton iteration
 [orb1,err] = orb_corr(orb0,sys);
 figure(); plot_orb(orb1,sys,'inf_broach_p'); title('Corrected orbit');
+% figure(); plot_orb_sd_delay(orb1,sys); title('Time delays');
 
 % Visualize the stability of the found orbit
  % [mu1,~,~,v1] = orb_stab(orb1,sys);

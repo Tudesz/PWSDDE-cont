@@ -26,7 +26,7 @@ end
 figure();
 for i = 1:length(branch)
     % Plot each orbit one by one
-    if nargin>1 && ~isempty(fs)
+    if nargin>2 && ~isempty(fs)
         plot_orb(branch(i),sys,fs)
     else
         plot_orb(branch(i),sys)
