@@ -15,6 +15,8 @@ function Ju = mpbvp_Ju(U,T,p,orb,sys,del)
 %    -> e: event function, map and corresponding Jacobians
 %    -> tau: time delay and its parameter Jacobian
 %    -> tau_no: number of distinct time delays
+%    -> sd_delay: if true state dependent delay definition is considered 
+%       (default false)
 %   del: data structure of delayed term evaluations
 %    -> ud: state at t-tau(k) (n x nt x M*N*n) (ACCOUNTING FOR NEUTRAL DELAYS!)
 %    -> id: segment index of t-tau(k) mapped back between 0 and T (M*n*N x nt)
@@ -23,6 +25,10 @@ function Ju = mpbvp_Ju(U,T,p,orb,sys,del)
 %       (M*n*N x nt x N x n_tau)
 % Output:
 %   Ju: Jacobian of governing system of nonlinear equations wrt U
+
+if ~isfield(sys,'sd_delay')
+    sys.sd_delay = false; % by default use fix point delays
+end
 
 % Initialization
 M = orb.M;              % mesh resolution
@@ -40,7 +46,12 @@ pi_ej = @(ej) feval(sys.e,[],[],[],orb.sig(ej),7,1);    % incoming modes at even
 Jf_mj = @(mj,x,xd,i) feval(sys.f,x,xd,p,mj,2,i);        % vector field Jacobian in mode mj
 Jh_ej = @(j,x,xd,i) feval(sys.e,x,xd,p,orb.sig(j),2,i); % event condition at ej
 Jg_ej = @(j,x,xd,i) feval(sys.e,x,xd,p,orb.sig(j),5,i); % event map at ej
-td_type = @(i) feval(sys.tau,[],i,1);                   % delay type identifier
+if ~sys.sd_delay
+    td_type = @(i) feval(sys.tau,[],i,1); % delay type identifier
+else
+    td_dx = @(x,i) feval(sys.tau,x,p,i,4);   % time delay jacobian wrt x
+    td_type = @(i) feval(sys.tau,[],[],i,1); % delay type identifier
+end
 
 % Find current and delayed terms
 [~,us] = bvp2sig(U,T,M); % signal form of state vector
@@ -89,7 +100,7 @@ for j = 1:N
         else
             % Boundary points
             df(k,:) = reshape(Jg_ej(j,ut,utau,0),1,[]); % event map
-            Jh(j,ij(M:M:end)) = Jh(j,ij_k) + Jh_ej(j,ut,utau,0);  % event condition
+            Jh(j,ij_k) = Jh(j,ij_k) + Jh_ej(j,ut,utau,0);  % event condition
         end
 
         % Delayed terms wrt u(t-tau)
@@ -100,7 +111,9 @@ for j = 1:N
             fi_jk = squeeze(fi_tau(ii(k),i,:)).'; % Lagrange coefficients
             dfi_jk = (D0.'*fi_jk.').'; % Derivatives of Lagrange coefficients
             dT_jk = squeeze(sum(dT(ii(k),i,:,:),4)).'; % derivatives of t-tau_i wrt Ti
-            
+            if sys.sd_delay
+                dtau_dx = -1/T(i_jk)*td_dx(ut,i); % derivative of tau wrt x
+            end
             if k<M
                 % Interior points
                 df_jk = Jf_mj(mj,ut,utau,i); % Jacobian of f wrt u(t-tau(k))
@@ -108,6 +121,10 @@ for j = 1:N
                 JTfg(ij_k,:) = JTfg(ij_k,:) - kron(df_jk,dfi_jk)*U(ijk)*dT_jk;
                 if td_type(i) == 2 % extra term for neutral delays
                     JTfg(ij_k,i_jk) = JTfg(ij_k,i_jk) + kron(df_jk,fi_jk)*U(ijk)/T(i_jk);
+                end
+                if sys.sd_delay % extra terms for state dependent delays
+                    Jfg(ij_k,ij_k) = Jfg(ij_k,ij_k) - ...
+                        kron(df_jk,dfi_jk)*U(ijk)*dtau_dx;
                 end
             else
                 % Boundary points
@@ -117,11 +134,19 @@ for j = 1:N
                 if td_type(i) == 2 % extra term for neutral delays
                     JTfg(ij_k,i_jk) = JTfg(ij_k,i_jk) + kron(dg_jk,fi_jk)*U(ijk)/T(i_jk);
                 end
+                if sys.sd_delay % extra terms for state dependent delays
+                    Jfg(ij_k,ij_k) = Jfg(ij_k,ij_k) - ...
+                        kron(dg_jk,dfi_jk)*U(ijk)*dtau_dx;
+                end
                 dh_jk = Jh_ej(j,ut,utau,i); % Jacobian of h wrt u(t-tau(k))
                 Jh(j,ijk) = Jh(j,ijk) + kron(dh_jk,fi_jk);
                 JTh(j,:) = JTh(j,:) + kron(dh_jk,dfi_jk)*U(ijk)*dT_jk;
                 if td_type(i) == 2 % extra term for neutral delays
                     JTh(j,i_jk) = JTh(j,i_jk) - kron(dh_jk,fi_jk)*U(ijk)/T(i_jk);
+                end
+                if sys.sd_delay % extra terms for state dependent delays
+                    Jh(j,ij_k) = Jh(j,ij_k) + ...
+                        kron(dh_jk,dfi_jk)*U(ijk)*dtau_dx;
                 end
             end            
         end

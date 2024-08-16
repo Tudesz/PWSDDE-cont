@@ -14,6 +14,8 @@ function Theta = mpbvp_mon(U,T,p,orb,sys,del)
 %    -> e: event function, map and corresponding Jacobians
 %    -> tau: time delay and its parameter Jacobian
 %    -> tau_no: number of distinct time delays
+%    -> sd_delay: if true state dependent delay definition is considered 
+%       (default false)
 %    -> aut: if true the sytem is truly autonomous, thus the vector field 
 %       condition for the final point of the orbit is included 
 %       during mondoromy matrix formulation (default true)
@@ -31,6 +33,9 @@ function Theta = mpbvp_mon(U,T,p,orb,sys,del)
 if ~isfield(sys,'aut')
     sys.aut = true; % include the Jacobian of the f(x(T)) = x'(T) condition by default
 end
+if ~isfield(sys,'sd_delay')
+    sys.sd_delay = false; % by default use fix point delays
+end
 
 % Initialization
 M = orb.M;              % mesh resolution
@@ -45,7 +50,12 @@ pi_ej = @(ej) feval(sys.e,[],[],[],orb.sig(ej),7,1);     % incoming modes at eve
 Jf_mj = @(mj,x,xd,i) feval(sys.f,x,xd,p,mj,2,i);         % vector field Jacobian in mode mj
 Jh_ej = @(j,x,xd,i) feval(sys.e,x,xd,p,orb.sig(j),2,i);  % event condition at ej
 Jg_ej = @(j,x,xd,i) feval(sys.e,x,xd,p,orb.sig(j),5,i);  % event map at ej
-td_type = @(i) feval(sys.tau,[],i,1);                    % delay type identifier
+if ~sys.sd_delay
+    td_type = @(i) feval(sys.tau,[],i,1); % delay type identifier
+else
+    td_dx = @(x,i) feval(sys.tau,x,p,i,4);   % time delay jacobian wrt x
+    td_type = @(i) feval(sys.tau,[],[],i,1); % delay type identifier
+end
 
 % Find current and delayed terms
 [~,us] = bvp2sig(U,T,M); % signal form of state vector
@@ -123,6 +133,9 @@ for j = 1:N
             i_jk = i_tau(ii(k),i);  % index of segment containing t-tau_i
             ijk = (i_jk-1)*M*n+1:i_jk*M*n; % indicies of interpolation segment elements
             n_jk = nd_tau(ii(k),i); % index of orbit which contains t-tau
+            if sys.sd_delay
+                dtau_dx = -1/T(i_jk)*td_dx(ut,i); % derivative of tau wrt x
+            end
 
             if k<M || (sys.aut && j==N)
                 % Interior points
@@ -136,6 +149,10 @@ for j = 1:N
                 if td_type(i) == 2 % extra term for neutral delays
                     Ju{end-n_jk}(ij_k,jT(i_jk)) = Ju{end-n_jk}(ij_k,jT(i_jk))...
                         + kron(df_jk,fi_jk)*U(ijk)/T(i_jk);
+                end
+                if sys.sd_delay % extra terms for state dependent delays
+                    Ju{end}(ij_k,ij_k) = Ju{end}(ij_k,ij_k) - ...
+                        kron(df_jk,dfi_jk)*U(ijk)*dtau_dx;
                 end
             end
 
@@ -168,6 +185,11 @@ for j = 1:N
                             + kron(dg_jk,fi_jk)*U(ijk)/T(i_jk);
                     end
                 end
+                if sys.sd_delay % extra terms for state dependent delays
+                    Ju{end}(ij_k,ij_k) = Ju{end}(ij_k,ij_k) - ...
+                        kron(dg_jk,dfi_jk)*U(ijk)*dtau_dx;
+                end
+                % Event conditions
                 Ju{end-n_jk}(jT(j),ijk) = Ju{end-n_jk}(jT(j),ijk) ...
                     + kron(dh_jk,fi_jk);
                 for nk = 0:ntau
@@ -178,6 +200,10 @@ for j = 1:N
                 if td_type(i) == 2 % extra terms for neutral delays
                     Ju{end-n_jk}(jT(j),jT(i_jk)) = Ju{end-n_jk}(jT(j),jT(i_jk))...
                         - kron(dh_jk,fi_jk)*U(ijk)/T(i_jk);
+                end
+                if sys.sd_delay % extra terms for state dependent delays
+                    Ju{end}(jT(j),ij_k) = Ju{end}(jT(j),ij_k) - ...
+                        kron(dh_jk,dfi_jk)*U(ijk)*dtau_dx;
                 end
             end            
         end

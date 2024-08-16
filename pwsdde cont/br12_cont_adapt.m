@@ -32,6 +32,8 @@ function branch = br12_cont_adapt(orb,sys,opts,bifs)
 %           tangent (default 1e-5*ds0)
 %      -> init_corr: if true correct initial solution guess before taking 
 %           any pseudo-arclength steps (default true)
+%      -> stab_eval: if true evaluate the stability of all found orbits
+%           (default true, can be turned of for reduced calculation times)
 %    -> stop: stopping conditions for the continuation run 
 %      -> n_step: maximum number of continuation steps in both directions
 %           [n_step_m n_step_p] (default [100 100])
@@ -126,7 +128,9 @@ branch(i0).T = orb1.T;
 branch(i0).p = orb1.p;
 branch(i0).bif_p = orb1.p(pind);
 branch(i0).error = norm(err);
-[branch(i0).mu, branch(i0).mu_crit,~] = orb_stab(branch(i0),sys);
+if opts.psa.stab_eval
+    [branch(i0).mu, branch(i0).mu_crit,~] = orb_stab(branch(i0),sys);
+end
 branch(i0).bif_type = 'Starting point';
 
 % Initialize the continuation run
@@ -212,9 +216,13 @@ for dir = 1:2
                 branch(ii0).bif_type = [branch(ii0).bif_type ' (Fold point)'];
                 fprintf('   -> Fold point detected at step %i\n',i);
             end
-        elseif bif_type > -2
-            % Evaluate orbit stabilty without bifurcation search
-            [orb_temp.mu, orb_temp.mu_crit, ~] = orb_stab(orb_temp,sys);
+        elseif bif_type > -1
+            if opts.psa.stab_eval
+                % Evaluate orbit stabilty without bifurcation search
+                [orb_temp.mu, orb_temp.mu_crit, ~] = orb_stab(orb_temp,sys);
+            else
+                orb_temp.mu = []; orb_temp.mu_crit = [];
+            end
         end
 
         % Do a bisection search for the bifurcation point if the run is
@@ -235,7 +243,11 @@ for dir = 1:2
                 warning('Bisection search for bifurcation point failed!')
             else
                 % If successful overwrite the last continuation point
-                [orbb.mu, orbb.mu_crit, ~] = orb_stab(orbb,sys);
+                if opts.psa.stab_eval
+                    [orbb.mu, orbb.mu_crit, ~] = orb_stab(orbb,sys);
+                else
+                    orbb.mu = []; orbb.mu_crit = [];
+                end
                 orb_temp = orbb; err = errb; ds0 = dsb;
             end
 

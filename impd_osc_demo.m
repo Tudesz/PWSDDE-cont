@@ -2,7 +2,7 @@ clear; clc; close all;
 warning off backtrace
 %% Example continuation problem of 2 a DoF impact Duffing oscillator
 % considering harmonic excitation and asymmetric air gaps
-% the equation of motion is detailed in "impduff_def.m"
+% equation of motion shown in "impduff_def.m"
 % using a nondimensionalized form and the old system definition structure
 
 % Dependencies

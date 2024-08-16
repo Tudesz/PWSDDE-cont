@@ -38,7 +38,11 @@ end
 % Forward time simulation starting from the periodic orbit
 T = sum(Tj);
 y0 = @(t) po_interp(ceil(-t/T)*T+t,U,Tj,orb.M);
-[~,sim] = sim_ns_dde(y0,p0,sys,[],opts);
-
+if ~sys.sd_delay
+    [~,sim] = sim_ns_dde(y0,p0,sys,[],opts);
+else
+    [~,sim] = sim_ns_sd_dde(y0,p0,sys,[],opts);
+end
+    
 end
 

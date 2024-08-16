@@ -25,6 +25,9 @@ function [type,orb1] = bif_ev_detect(si,y0,y1,orb0,sys,opts,bifs)
 %       during mondoromy matrix formulation (default true)
 %   opts: numerical method parameters
 %    -> pi: indicies of continuation parameters (length of 1 or 2)
+%    -> psa: pseudo-arclength method parameters
+%      -> stab_eval: if true evaluate the stability of all found orbits
+%           (default true, can be turned of for reduced calculation times)
 %    -> stop: stopping conditions for the continuation run 
 %      -> stab_ch: if true stop on changes in stability (default false)
 %      -> ext_gr: stop if external grazing is detected (default true)
@@ -70,7 +73,9 @@ orb1.p(opts.pi) = y1(end-lp+1:end);
 orb1.bif_type = [];
 
 % Evaluate orbit stability
-[orb1.mu, orb1.mu_crit, ~] = orb_stab(orb1,sys);
+if opts.psa.stab_eval
+    [orb1.mu, orb1.mu_crit, ~] = orb_stab(orb1,sys);
+end
 
 % Auxiliary monitor functions
 if isfield(sys,'q')
@@ -147,24 +152,26 @@ if ~isempty(vi)
 end
 
 % Mark changes in stability
-if (1+opts.nr.abstol-abs(orb0.mu_crit))*...
-    (1+opts.nr.abstol-abs(orb1.mu_crit))<0
-    if abs(imag(orb1.mu_crit))>opts.nr.abstol
-        text = 'Stability change (Hopf)';
-    elseif real(orb1.mu_crit)>0
-        text = 'Stability change (Saddle node)';
-    else
-        text = 'Stability change (Period doubling)';
-    end
-    if ~isempty(orb1.bif_type)
-        orb1.bif_type = [orb1.bif_type '; ' text];
-    else
-        orb1.bif_type = text;
-    end
-    fprintf('   -> Change in stability detected at step %i\n',si);
-    % Stop continuation if necessary
-    if opts.stop.stab_ch
-        type = [type 1];
+if opts.psa.stab_eval
+    if (1+opts.nr.abstol-abs(orb0.mu_crit))*...
+        (1+opts.nr.abstol-abs(orb1.mu_crit))<0
+        if abs(imag(orb1.mu_crit))>opts.nr.abstol
+            text = 'Stability change (Hopf)';
+        elseif real(orb1.mu_crit)>0
+            text = 'Stability change (Saddle node)';
+        else
+            text = 'Stability change (Period doubling)';
+        end
+        if ~isempty(orb1.bif_type)
+            orb1.bif_type = [orb1.bif_type '; ' text];
+        else
+            orb1.bif_type = text;
+        end
+        fprintf('   -> Change in stability detected at step %i\n',si);
+        % Stop continuation if necessary
+        if opts.stop.stab_ch
+            type = [type 1];
+        end
     end
 end
 

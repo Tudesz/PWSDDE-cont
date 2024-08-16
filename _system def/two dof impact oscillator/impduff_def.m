@@ -115,5 +115,10 @@ struct.dgp{3} = @(x,p) zeros(6,10);
 struct.dgp{4} = struct.dgp{3};
 
 % system dimensions
-struct.dims = [20, 6]; % (M,n)
+struct.dims = [20, 6];
+struct.type = 2; % non-smooth ODE
+
+% Plot functions
+f_pl{1} = @(t,x) x(1,:);
+f_pl{2} = @(t,x) x(2,:)- x(1,:);
 

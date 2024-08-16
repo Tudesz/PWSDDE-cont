@@ -6,6 +6,7 @@ Periodic orbit continuation routines for piecewise-smooth delay differential equ
 - two parameter continuation of grazing, sliding, or user defined bifurcations
 - *COCO "core"* compatible definition of the governing MP-BVP and its monitor functions
 - limited treatment of neutral delays (WARNING: forward propagation of discontinuities may lead to major interpolation errors!)
+- partial support for state dependent delays (only explicit dependence on the present state is allowed!)
 
 ## Installation
 - Clone the repository or download the zip file containing the codes and place them in an arbitrary folder.
@@ -13,7 +14,7 @@ Periodic orbit continuation routines for piecewise-smooth delay differential equ
 - To make use of COCO when running the included demo codes, replace "<COCO_dir>" with the appropriate path.
 
 ## Usage
-At first it is recommended to take a look at the four example continuation problems: **bld_osc_demo.m**, **fric_osc_demo.m**, **nlne_rob_demo.m**, and **impd_osc_demo.m**, which are included in the release. These can serve as great templates for creating PWSDDE-cont compatible continuation problems. The most important routines of the code base are all found in the *pwsdde cont* folder. For most continuation problems the use of these algorithms should be sufficient. For more intricate tasks, however, it is also worthwhile to take a deeper look into the *_toolbox* folder.
+At first it is recommended to take a look at the four example continuation problems: **bld_osc_demo.m**, **fric_osc_demo.m**, **nlne_rob_demo.m**, and **impd_osc_demo.m**, which are included in the release. These can serve as great templates for creating PWSDDE-cont compatible continuation problems. A slightly different formalism for problems with state dependent delays is illustrated by **sd_broach_demo**. The most important routines of the code base are all found in the *pwsdde cont* folder. For most continuation problems the use of these algorithms should be sufficient. For more intricate tasks, however, it is also worthwhile to take a deeper look into the *_toolbox* folder.
 
 1) To define a continuation problem, the users are expected to provide all necessary functions and Jacobians as demonstrated by the examples found in the *_system def* folder. These should be coded up in three (four) separate functions:
     - **f(x,xd,p,mode,type,l)**: right hand side of the PWS-DDE and its Jacobians

@@ -3,8 +3,7 @@ warning off backtrace
 %% Example continuation problem of 1 a DoF bilinear delayed oscillator
 % considering harmonic excitation and delayed velocity feedback control
 % using a nondimensionalized form of the governing equation of motion
-% further details on the model are available in:
-% https://doi.org/10.1016/j.cnsns.2019.105095
+% further details on the model at: https://doi.org/10.1016/j.cnsns.2019.105095
 
 % Dependencies
 addpath(genpath('_toolbox'))

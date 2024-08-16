@@ -31,6 +31,8 @@ function branch = br12_cont_fix(orb,sys,opts,bifs)
 %           tangent (default 1e-5*ds0)
 %      -> init_corr: if true correct initial solution guess before taking 
 %           any pseudo-arclength steps (default true)
+%      -> stab_eval: if true evaluate the stability of all found orbits
+%           (default true, can be turned of for reduced calculation times)
 %    -> stop: stopping conditions for the continuation run 
 %      -> p_lim: limits of the continuation paramters p(pind) [p_min p_max]
 %           can use separate limits in two parameter continuation (2x2)
@@ -127,7 +129,9 @@ branch(1).T = orb1.T;
 branch(1).p = orb1.p;
 branch(1).bif_p = orb1.p(pind);
 branch(1).error = norm(err);
-[branch(1).mu, branch(1).mu_crit,~] = orb_stab(branch(1),sys);
+if opts.psa.stab_eval
+    [branch(1).mu, branch(1).mu_crit,~] = orb_stab(branch(1),sys);
+end
 branch(1).bif_type = 'Starting point';
 
 % Initialize continuation run
@@ -191,7 +195,11 @@ for i = 2:np+1
         orb_temp.U = y1(1:end-N-lp);
         orb_temp.T = y1(end-N-lp+1:end-lp); 
         orb_temp.p(pind) = y1(end-lp+1:end);
-        [orb_temp.mu, orb_temp.mu_crit, ~] = orb_stab(orb_temp,sys);
+        if opts.psa.stab_eval
+            [orb_temp.mu, orb_temp.mu_crit, ~] = orb_stab(orb_temp,sys);
+        else
+            orb_temp.mu = []; orb_temp.mu_crit = [];
+        end
     end
 
     % Evaluate the user defined monitor function if it has not been done already

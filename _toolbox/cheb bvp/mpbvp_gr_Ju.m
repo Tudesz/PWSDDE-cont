@@ -14,6 +14,8 @@ function Jgr = mpbvp_gr_Ju(U,T,p,orb,sys,del,gr_ind)
 %    -> e: event function, map and corresponding Jacobians
 %    -> tau: time delay and its parameter Jacobian
 %    -> tau_no: number of distinct time delays
+%    -> sd_delay: if true state dependent delay definition is considered 
+%       (default false)
 %   del: data structure of delayed term evaluations
 %    -> ud: state at t-tau(k) (n x nt x M*N*n) (ACCOUNTING FOR NEUTRAL DELAYS!)
 %    -> id: segment index of t-tau(k) mapped back between 0 and T (M*n*N x nt)
@@ -23,6 +25,10 @@ function Jgr = mpbvp_gr_Ju(U,T,p,orb,sys,del,gr_ind)
 %   gr_ind: index of grazing event
 % Output:
 %   Jgr: Jacobian of governing grazing condition (N*M*n+N x 1)
+
+if ~isfield(sys,'sd_delay')
+    sys.sd_delay = false; % by default use fix point delays
+end
 
 % Initialization
 M = orb.M;              % mesh resolution
@@ -37,7 +43,12 @@ JTh = zeros(M,N);       % event condition Jacobian evaluations wrt Ti
 % Function definitions
 h_ej = @(j,x,xd) feval(sys.e,x,xd,p,orb.sig(j),1,0);  % event condition at ej
 Jh_ej = @(j,x,xd,i) feval(sys.e,x,xd,p,orb.sig(j),2,i); % event condition at ej
-td_type = @(i) feval(sys.tau,[],i,1);                    % delay type identifier
+if ~sys.sd_delay
+    td_type = @(i) feval(sys.tau,[],i,1); % delay type identifier
+else
+    td_dx = @(x,i) feval(sys.tau,x,p,i,4);   % time delay jacobian wrt x
+    td_type = @(i) feval(sys.tau,[],[],i,1); % delay type identifier
+end
 
 % Find current and delayed terms
 [~,us] = bvp2sig(U,T,M); % signal form of state vector
@@ -56,6 +67,7 @@ for k = 1:M
     utau = squeeze(us_tau(:,:,ii(k)));
     h(k) = h_ej(gr_ind,ut,utau);
     Jh(k,ij(k:M:end)) = Jh(k,ij(k:M:end)) + Jh_ej(gr_ind,ut,utau,0);
+    i_kk = (gr_ind-1)*M*n+k+M*(0:n-1); % column index of x(t)
     
     % Delayed terms
     for i = 1:nt
@@ -73,6 +85,10 @@ for k = 1:M
         JTh(k,:) = JTh(k,:) + kron(dh_jk,dfi_ki)*U(ik)*dT_jk;
         if td_type(i) == 2 % extra term for neutral delays
             JTh(k,i_k) = JTh(k,i_k) - kron(dh_jk,fi_ki)*U(ik)/T(i_k);
+        end
+        if sys.sd_delay % extra terms for state dependent delays
+            dtau_dx = -1/T(i_k)*td_dx(ut,i); % derivative of tau wrt x
+            Jh(k,i_kk) = Jh(k,i_kk) + kron(dh_jk,dfi_ki)*U(ik)*dtau_dx;
         end
     end
 end

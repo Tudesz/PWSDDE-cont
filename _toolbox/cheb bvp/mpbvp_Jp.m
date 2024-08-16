@@ -14,12 +14,18 @@ function Jp = mpbvp_Jp(U,T,p,orb,sys,del)
 %    -> e: event function, map and corresponding Jacobians
 %    -> tau: time delay and its parameter Jacobian
 %    -> tau_no: number of distinct time delays
+%    -> sd_delay: if true state dependent delay definition is considered 
+%       (default false)
 %   del: data structure of delayed term evaluations
 %    -> ud: state at t-tau(k) (n x nt x M*N*n) (ACCOUNTING FOR NEUTRAL DELAYS!)
 %    -> id: segment index of t-tau(k) mapped back between 0 and T (M*n*N x nt)
 %    -> fi: lagrange interpolation coefficients (M*n*N x nt x M)
 % Output:
 %   Jp: Jacobian of governing system of nonlinear equations
+
+if ~isfield(sys,'sd_delay')
+    sys.sd_delay = false; % by default use fix point delays
+end
 
 % Initialization
 M = orb.M;              % mesh resolution
@@ -32,17 +38,18 @@ Jfg = zeros(M*N*n,l);   % Jacobian matrix of rhs and interfaces
 Jh = zeros(N,l);        % Jacobian of event conditions
 
 % Function definitions
-dtau = zeros(nt,l); % parameter derivatives of point time delays
-for i=1:nt
-    dtau(i,:) = feval(sys.tau,p,i,3);
-end
 pi_ej = @(ej) feval(sys.e,[],[],[],orb.sig(ej),7,1);    % incoming modes at events
 Jfp_mj = @(mj,x,xd) feval(sys.f,x,xd,p,mj,3,0);         % vector field Jacobian in mode mj
 Jhp_ej = @(j,x,xd) feval(sys.e,x,xd,p,orb.sig(j),3,0);  % event condition at ej
 Jgp_ej = @(j,x,xd) feval(sys.e,x,xd,p,orb.sig(j),6,0);  % event map at ej
-Jf_mj = @(mj,x,xd,i) feval(sys.f,x,xd,p,mj,2,i);         % vector field Jacobian in mode mj
-Jh_ej = @(j,x,xd,i) feval(sys.e,x,xd,p,orb.sig(j),2,i);  % event condition at ej
-Jg_ej = @(j,x,xd,i) feval(sys.e,x,xd,p,orb.sig(j),5,i);  % event map at ej
+Jf_mj = @(mj,x,xd,i) feval(sys.f,x,xd,p,mj,2,i);        % vector field Jacobian in mode mj
+Jh_ej = @(j,x,xd,i) feval(sys.e,x,xd,p,orb.sig(j),2,i); % event condition at ej
+Jg_ej = @(j,x,xd,i) feval(sys.e,x,xd,p,orb.sig(j),5,i); % event map at ej
+if ~sys.sd_delay
+    dp_tau = @(~,i) feval(sys.tau,p,i,3); % parameter jacobian of tau_i (fixed)
+else
+    dp_tau = @(x,i) feval(sys.tau,x,p,i,3); % parameter jacobian of tau_i (state dependent)
+end
 
 % Find current and delayed terms
 [~,us] = bvp2sig(U,T,M); % signal form of state vector
@@ -78,7 +85,7 @@ for j = 1:N
             fi_jk = squeeze(fi_tau(ii(k),i,:)).'; % interpolation coefficients
             dfi_jk = (D0.'*fi_jk.').'; % Derivatives of Lagrange coefficients
             ijk = (i_tau(ii(k),i)-1)*M*n+1:i_tau(ii(k),i)*M*n; % indicies of interpolation segment elements
-            dtau_jk = -1/T(i_tau(ii(k),i))*dtau(i,:);
+            dtau_jk = -1/T(i_tau(ii(k),i))*dp_tau(ut,i);
             if k<M
                 % Interior points
                 df_jk = Jf_mj(mj,ut,utau,i); % Jacobian of f wrt u(t-tau(k))

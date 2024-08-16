@@ -14,6 +14,8 @@ function Jgr = mpbvp_gr_Jp(U,T,p,orb,sys,del,gr_ind)
 %    -> e: event function, map and corresponding Jacobians
 %    -> tau: time delay and its parameter Jacobian
 %    -> tau_no: number of distinct time delays
+%    -> sd_delay: if true state dependent delay definition is considered 
+%       (default false)
 %   del: data structure of delayed term evaluations
 %    -> ud: state at t-tau(k) (n x nt x M*N*n) (ACCOUNTING FOR NEUTRAL DELAYS!)
 %    -> id: segment index of t-tau(k) mapped back between 0 and T (M*n*N x nt)
@@ -21,6 +23,10 @@ function Jgr = mpbvp_gr_Jp(U,T,p,orb,sys,del,gr_ind)
 %   gr_ind: index of grazing event
 % Output:
 %   Jgr: Jacobian of governing grazing condition wrt parameters (l x 1)
+
+if ~isfield(sys,'sd_delay')
+    sys.sd_delay = false; % by default use fix point delays
+end
 
 % Initialization
 M = orb.M;              % mesh resolution
@@ -31,12 +37,13 @@ Jh = zeros(M,l);        % event condition parameter Jacobian evaluations
 D0 = cheb_diff(M);      % base differentiation matrix
 
 % Function definitions
-dtau = zeros(nt,l); % parameter derivatives of time delays
-for i = 1:nt
-    dtau(i,:) = feval(sys.tau,p,i,3); 
-end
 Jhp_ej = @(j,x,xd) feval(sys.e,x,xd,p,orb.sig(j),3,0);  % event condition at ej
 Jh_ej = @(j,x,xd,i) feval(sys.e,x,xd,p,orb.sig(j),2,i);  % event condition at ej
+if ~sys.sd_delay
+    dp_tau = @(~,i) feval(sys.tau,p,i,3); % parameter jacobian of tau_i (fixed)
+else
+    dp_tau = @(x,i) feval(sys.tau,x,p,i,3); % parameter jacobian of tau_i (state dependent)
+end
 
 % Find current and delayed terms
 [~,us] = bvp2sig(U,T,M); % signal form of state vector
@@ -59,7 +66,7 @@ for k = 1:M
         dfi_jk = zeros(M);
         dfi_jk(k,:) = fi_jk.'*D0; % time derivative of interpolation coefficients
         ijk = (i_tau(ii(k),i)-1)*M*n+1:i_tau(ii(k),i)*M*n; % indicies of interpolation segment elements
-        dtau_jk = -1/T(i_tau(ii(k),i))*dtau(i,:);
+        dtau_jk = -1/T(i_tau(ii(k),i))*dp_tau(ut,i);
         % Derivatives of the boundary conditions
         dh_jk = Jh_ej(gr_ind,ut,utau,i); % Jacobian of h wrt u(t-tau(k))
         Jh(k,:) = Jh(k,:) + kron(dh_jk,dfi_jk(k,:))*U(ijk)*dtau_jk;

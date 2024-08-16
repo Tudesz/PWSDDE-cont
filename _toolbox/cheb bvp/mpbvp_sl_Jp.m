@@ -17,12 +17,18 @@ function Jsl = mpbvp_sl_Jp(U,T,p,orb,sys,del,sl_ind)
 %    -> e: event function, map and corresponding Jacobians
 %    -> tau: time delay and its parameter Jacobian
 %    -> tau_no: number of distinct time delays
+%    -> sd_delay: if true state dependent delay definition is considered 
+%       (default false)
 %   del: data structure of delayed term evaluations
 %    -> ud: state at t-tau(k) (n x nt x M*N*n) (ACCOUNTING FOR NEUTRAL DELAYS!)
 %    -> id: segment index of t-tau(k) mapped back between 0 and T (M*n*N x nt)
 %    -> fi: lagrange interpolation coefficients (M*n*N x nt x M)
 % Output:
 %   Jsl: Jacobian of governing sliding condition wrt parameters (l x 1)
+
+if ~isfield(sys,'sd_delay')
+    sys.sd_delay = false; % by default use fix point delays
+end
 
 % Initialization
 M = orb.M;              % mesh resolution
@@ -32,11 +38,12 @@ nt = sys.tau_no;        % number of time delays
 D0 = cheb_diff(M);      % base differentiation matrix
 
 % Function definitions
-dtau = zeros(nt,l); % parameter derivatives of time delays
-for k = 1:nt
-    dtau(k,:) = feval(sys.tau,p,k,3); 
-end
 Jf_mj = @(mj,x,xd,i) feval(sys.f,x,xd,p,mj,2,i); % vector field Jacobian in mode mj
+if ~sys.sd_delay
+    dp_tau = @(~,i) feval(sys.tau,p,i,3); % parameter jacobian of tau_i (fixed)
+else
+    dp_tau = @(x,i) feval(sys.tau,x,p,i,3); % parameter jacobian of tau_i (state dependent)
+end
 
 % unpack solution vector
 [~,x0] = bvp2sig(U,T,M);       
@@ -69,7 +76,7 @@ for k = 1:nt
     fi_k = squeeze(fi_tau(sl_ind*M,k,:)).'; % interpolation coefficients
     dfi_k = (D0.'*fi_k.').'; % time derivative of interpolation coefficients
     i_k = (i_tau(sl_ind*M,k)-1)*M*n+1:i_tau(sl_ind*M,k)*M*n; % indicies of interpolation segment elements
-    dtau_k = -1/T(i_tau(sl_ind*M,k))*dtau(k,:);
+    dtau_k = -1/T(i_tau(sl_ind*M,k))*dp_tau(u_sl,k);
     % Corresponding derivatives
     Jfd_in = Jf_mj(m_in,u_sl,ud_sl,k); % vector field Jacobian before event
     Jfd_out = Jf_mj(m_out,u_sl,ud_sl,k); % vector field Jacobian after event

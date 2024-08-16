@@ -10,6 +10,8 @@ function del = po_delay_interp(u0,Ti,par,M,sys,res)
 %   sys: names of the functions that define the system
 %    -> tau: time delay and its parameter Jacobians
 %    -> tau_no: number of distinct time delays
+%    -> sd_delay: if true state dependent delay definition is considered 
+%       (default false)
 %   res: interpolation resolution (default M)
 % Output:
 %   del: output structure of delayed term evaluations
@@ -21,23 +23,43 @@ function del = po_delay_interp(u0,Ti,par,M,sys,res)
 %    -> nd: index of the periodic orbit where the tq is found without 
 %       looping around (0 current, 1,2,... past orbits) (M*n*N x nt)
 
-% Initialization
-nt = sys.tau_no;   % number of delays
-tau = zeros(1,sys.tau_no);
-tau_type = zeros(1,sys.tau_no);
-for i = 1:sys.tau_no
-    tau(i) = feval(sys.tau,par,i,2); % time delays
-    tau_type(i) = feval(sys.tau,[],i,1); % delay types
+if ~isfield(sys,'sd_delay')
+    sys.sd_delay = false; % by default use fix point delays
 end
+
+% Initialization
+nt = sys.tau_no;    % number of delays
 D0 = cheb_diff(M);  % base differentiation matrix (for neutral terms)
 N = length(Ti);     % number of segments
 n = length(u0)/(N*M); % state dimension
-ntau = max(1,ceil(max(tau)/sum(Ti))); % nt*T is neccessary to cover tau_max
 if nargin < 6
-    [ts,~] = bvp2sig(u0,Ti,M); % time mesh
+    [ts,us] = bvp2sig(u0,Ti,M); % time mesh
 else
-    [ts,~] = bvp2sig(u0,Ti,M,res); % time mesh
+    [ts,us] = bvp2sig(u0,Ti,M,res); % time mesh
 end
+
+% Unpack time delays
+tau_type = zeros(1,sys.tau_no);
+if ~sys.sd_delay
+    % fixed point delays
+    tau = zeros(1,sys.tau_no);
+    for j = 1:sys.tau_no
+        tau(j) = feval(sys.tau,par,j,2); % time delays
+        tau_type(j) = feval(sys.tau,[],j,1); % delay types
+    end
+else
+    % state dependent case
+    tau = zeros(length(ts),sys.tau_no);
+    for j = 1:sys.tau_no
+        for i = 1:length(ts)
+            tau(i,j) = feval(sys.tau,us(:,i),par,j,2); % time delays
+        end
+        tau_type(j) = feval(sys.tau,[],[],j,1); % delay types
+    end
+end
+ntau = max(1,ceil(max(max(tau))/sum(Ti))); % nt*T is neccessary to cover tau_max
+
+% Initialize outputs
 del.ud = zeros(n,nt,length(ts)); % delayed terms (state at t_tau)
 del.id = zeros(length(ts),nt); % index of the segment where delayed terms were interpolated
 del.fi = zeros(length(ts),nt,M); % lagrange interpolation coefficients
@@ -49,6 +71,11 @@ for i = 1:length(ts)
     
     % Span all possible delays
     for j = 1:nt
+        if ~sys.sd_delay
+            tau_ij = tau(j);
+        else
+            tau_ij = tau(i,j);
+        end
         
         % Current segment index
         if nargin<6
@@ -65,7 +92,7 @@ for i = 1:length(ts)
         delta_Ti(i0,end) = delta_i/Ti(i0);  % account for initial segment
     
         % Step back segment by segment until tau is covered
-        while delta_i<tau(j)
+        while delta_i < tau_ij
             % Cirle around segments
             if i0>1
                 i0 = i0-1;
@@ -75,7 +102,7 @@ for i = 1:length(ts)
             end
             
             % Emergency switch
-            if del.nd(i,j)>ntau
+            if del.nd(i,j) > ntau
                 warning('Maximum iteration number reached while searchig for t_tau');
                 break
             end
@@ -86,7 +113,7 @@ for i = 1:length(ts)
             
         end
 
-        if del.nd(i,j)>ntau
+        if del.nd(i,j) > ntau
             del.nd(i,j) = ntau;
             del.id(i,j) = 1;
             break
@@ -94,7 +121,7 @@ for i = 1:length(ts)
         
         % Identify interpolation segment and querry point
         del.id(i,j) = i0;
-        tq = (delta_i-tau(j))/Ti(i0);
+        tq = (delta_i-tau_ij)/Ti(i0);
         ui0 = u0((i0-1)*M*n+1:i0*M*n);
         
         % Lagrange interpolation
@@ -107,7 +134,7 @@ for i = 1:length(ts)
         
         % Evaluate derivative of t_tau wrt Ti
         del.dT(i,j,:,:) = 1/Ti(i0)*delta_Ti;
-        del.dT(i,j,i0,end-del.nd(i,j)) = -(delta_i-tau(j)-...
+        del.dT(i,j,i0,end-del.nd(i,j)) = -(delta_i-tau_ij-...
             delta_Ti(i0,end-del.nd(i,j))*Ti(i0))/Ti(i0)^2;
         
     end
