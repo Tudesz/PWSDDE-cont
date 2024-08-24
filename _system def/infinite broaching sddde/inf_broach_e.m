@@ -63,18 +63,15 @@ switch id
             case 4
                 X = x;
                 X(6) = x(6) - 1;
-                % X(5) = 1 + xd(5,1) - x(5);
             % Event map Jacobian
             case 5
                 switch l
                     % wrt x(t)
                     case 0
                         X = eye(6);
-                        % X(5,5) = -1;
                     % wrt x(t-tau_1)
                     case 1
                         X = zeros(6);
-                        % X(5,5) = -1;
                 end
             % Parameter Jacobian of g
             case 6

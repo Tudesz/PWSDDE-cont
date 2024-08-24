@@ -195,9 +195,9 @@ for dir = 1:2
                 err = errb;
             end
         elseif bif_type > -2
+            orb_temp = orb;
             orb_temp.U = y1(1:end-N-lp);
             orb_temp.T = y1(end-N-lp+1:end-lp); 
-            orb_temp.p = orb.p;
             orb_temp.p(pind) = y1(end-lp+1:end);
         end
 
@@ -216,7 +216,7 @@ for dir = 1:2
                 branch(ii0).bif_type = [branch(ii0).bif_type ' (Fold point)'];
                 fprintf('   -> Fold point detected at step %i\n',i);
             end
-        elseif bif_type > -1
+        elseif bif_type > -2
             if opts.psa.stab_eval
                 % Evaluate orbit stabilty without bifurcation search
                 [orb_temp.mu, orb_temp.mu_crit, ~] = orb_stab(orb_temp,sys);
@@ -254,7 +254,7 @@ for dir = 1:2
         end
 
         % Evaluate the user defined monitor function if it has not been done already
-        if isfield(sys,'q') && ~isfield(orb_temp,'q')
+        if isfield(sys,'q') && (~isfield(orb_temp,'q') || isempty(orb_temp.q))
             orb_temp.q = feval(sys.q,y1,orb,sys,pind);
         end
 
