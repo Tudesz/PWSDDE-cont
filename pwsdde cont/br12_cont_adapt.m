@@ -32,6 +32,8 @@ function branch = br12_cont_adapt(orb,sys,opts,bifs)
 %           tangent (default 1e-5*ds0)
 %      -> init_corr: if true correct initial solution guess before taking 
 %           any pseudo-arclength steps (default true)
+%      -> stab_eval: if true evaluate the stability of all found orbits
+%           (default true, can be turned of for reduced calculation times)
 %    -> stop: stopping conditions for the continuation run 
 %      -> n_step: maximum number of continuation steps in both directions
 %           [n_step_m n_step_p] (default [100 100])
@@ -126,7 +128,9 @@ branch(i0).T = orb1.T;
 branch(i0).p = orb1.p;
 branch(i0).bif_p = orb1.p(pind);
 branch(i0).error = norm(err);
-[branch(i0).mu, branch(i0).mu_crit,~] = orb_stab(branch(i0),sys);
+if opts.psa.stab_eval
+    [branch(i0).mu, branch(i0).mu_crit,~] = orb_stab(branch(i0),sys);
+end
 branch(i0).bif_type = 'Starting point';
 
 % Initialize the continuation run
@@ -191,9 +195,9 @@ for dir = 1:2
                 err = errb;
             end
         elseif bif_type > -2
+            orb_temp = orb;
             orb_temp.U = y1(1:end-N-lp);
             orb_temp.T = y1(end-N-lp+1:end-lp); 
-            orb_temp.p = orb.p;
             orb_temp.p(pind) = y1(end-lp+1:end);
         end
 
@@ -213,8 +217,12 @@ for dir = 1:2
                 fprintf('   -> Fold point detected at step %i\n',i);
             end
         elseif bif_type > -2
-            % Evaluate orbit stabilty without bifurcation search
-            [orb_temp.mu, orb_temp.mu_crit, ~] = orb_stab(orb_temp,sys);
+            if opts.psa.stab_eval
+                % Evaluate orbit stabilty without bifurcation search
+                [orb_temp.mu, orb_temp.mu_crit, ~] = orb_stab(orb_temp,sys);
+            else
+                orb_temp.mu = []; orb_temp.mu_crit = [];
+            end
         end
 
         % Do a bisection search for the bifurcation point if the run is
@@ -235,14 +243,18 @@ for dir = 1:2
                 warning('Bisection search for bifurcation point failed!')
             else
                 % If successful overwrite the last continuation point
-                [orbb.mu, orbb.mu_crit, ~] = orb_stab(orbb,sys);
+                if opts.psa.stab_eval
+                    [orbb.mu, orbb.mu_crit, ~] = orb_stab(orbb,sys);
+                else
+                    orbb.mu = []; orbb.mu_crit = [];
+                end
                 orb_temp = orbb; err = errb; ds0 = dsb;
             end
 
         end
 
         % Evaluate the user defined monitor function if it has not been done already
-        if isfield(sys,'q') && ~isfield(orb_temp,'q')
+        if isfield(sys,'q') && (~isfield(orb_temp,'q') || isempty(orb_temp.q))
             orb_temp.q = feval(sys.q,y1,orb,sys,pind);
         end
 
