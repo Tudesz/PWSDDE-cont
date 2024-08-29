@@ -3,6 +3,8 @@ warning off backtrace
 %% Example continuation problem of a 1 DoF dry friction oscillator
 % using a nondimensionalized form of the governing equation of motion
 % artificial DDE formalism, phase shift cosidered as time delay
+% the model is discussed in detail in the appendix of 
+% https://doi.org/10.1007/s11071-024-10188-8
 
 % Dependencies
 addpath(genpath('_toolbox'))

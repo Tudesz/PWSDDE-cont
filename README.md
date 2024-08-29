@@ -14,7 +14,7 @@ Periodic orbit continuation routines for piecewise-smooth delay differential equ
 - To make use of COCO when running the included demo codes, replace "<COCO_dir>" with the appropriate path.
 
 ## Usage
-At first it is recommended to take a look at the four example continuation problems: **bld_osc_demo.m**, **fric_osc_demo.m**, **nlne_rob_demo.m**, and **impd_osc_demo.m**, which are included in the release. These can serve as great templates for creating PWSDDE-cont compatible continuation problems. A slightly different formalism for problems with state dependent delays is illustrated by **sd_broach_demo.m**. The most important routines of the code base are all found in the *pwsdde cont* folder. For most continuation problems the use of these algorithms should be sufficient. For more intricate tasks, however, it is also worthwhile to take a deeper look into the *_toolbox* folder.
+At first it is recommended to take a look at the four example continuation problems: **bld_osc_demo.m**, **fric_osc_demo.m**, **nlne_rob_demo.m**, and **impd_osc_demo.m**, which are included in the release. These can serve as great templates for creating PWSDDE-cont compatible continuation problems. A slightly different formalism for problems with state dependent delays is illustrated by **sd_broach_demo.m**. The most important routines of the codebase are all found in the *pwsdde cont* folder. For most continuation problems the use of these algorithms should be sufficient. For more intricate tasks, however, it is also worthwhile to take a deeper look into the *_toolbox* folder.
 
 1) To define a continuation problem, the users are expected to provide all necessary functions and Jacobians as demonstrated by the examples found in the *_system def* folder. These should be coded up in three (four) separate functions:
     - **f(x,xd,p,mode,type,l)**: right hand side of the PWS-DDE and its Jacobians
@@ -50,4 +50,7 @@ At first it is recommended to take a look at the four example continuation probl
 
 ## References
 
-The inner workings of the continuation codes and further information on the use of the code base is published in: [...]
+The inner workings of the continuation algorithms and further information on the use of the codebase is published in the article
+[Bifurcation analysis of piecewise-smooth engineering systems with delays through numeric continuation of periodic orbits](https://doi.org/10.1007/s11071-024-10188-8). If the present framework is used for research purposes, please include a reference to this work.
+ 
+
