@@ -49,4 +49,6 @@ At first it is recommended to take a look at the four example continuation probl
 
 ## References
 
-The inner workings of the continuation codes and further information on the use of the code base is published in: [...]
+The inner workings of the continuation algorithms and further information on the use of the codebase is published in the article
+[Bifurcation analysis of piecewise-smooth engineering systems with delays through numeric continuation of periodic orbits](https://doi.org/10.1007/s11071-024-10188-8). If the present framework is used for research purposes, please include a reference to this work.
+
