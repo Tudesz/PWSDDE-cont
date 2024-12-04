@@ -58,7 +58,7 @@ opts.psa.ds0 = 0.1; % default psa stepsize
 opts.psa.ds_lim = [1e-3 10]; % limits of the psa stepsize
 opts.psa.tgi_ds = 1e-5; % default relative length of zeroth step
 opts.psa.init_corr = true; % correct initial guess before ps steps
-opts.psa.stab_eval = true; % evaluate the stability of periodic orbit sby default
+opts.psa.stab_eval = true; % evaluate the stability of periodic orbits by default
 
 % Stopping conditions
 opts.stop.n_step = [100 100]; % number of allowed steps in both direction
