@@ -203,7 +203,7 @@ for i = 2:np+1
     end
 
     % Evaluate the user defined monitor function if it has not been done already
-    if isfield(sys,'q') && ~isfield(orb_temp,'q')
+    if isfield(sys,'q') && (~isfield(orb_temp,'q') || isempty(orb_temp.q))
         orb_temp.q = feval(sys.q,y1,orb,sys,pind);
     end
 

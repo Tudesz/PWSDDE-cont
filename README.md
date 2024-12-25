@@ -4,7 +4,7 @@ Periodic orbit continuation routines for piecewise-smooth delay differential equ
 - automatic monodromy matrix formulation, stability analysis, and detection of stability related bifurcations
 - built in discontinuity induced bifurcation detection routines (grazing, sliding)
 - two parameter continuation of grazing, sliding, or user defined bifurcations
-- *COCO "core"* compatible definition of the governing MP-BVP and its monitor functions
+- [COCO](https://sourceforge.net/projects/cocotools/) *"core"* compatible definition of the governing MP-BVP and its monitor functions
 - limited treatment of neutral delays (WARNING: forward propagation of discontinuities may lead to major interpolation errors!)
 - partial support for state dependent delays (only explicit dependence on the present state is allowed!)
 
@@ -52,5 +52,4 @@ At first it is recommended to take a look at the four example continuation probl
 
 The inner workings of the continuation algorithms and further information on the use of the codebase is published in the article
 [Bifurcation analysis of piecewise-smooth engineering systems with delays through numeric continuation of periodic orbits](https://doi.org/10.1007/s11071-024-10188-8). If the present framework is used for research purposes, please include a reference to this work.
- 
 
