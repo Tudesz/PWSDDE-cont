@@ -20,6 +20,8 @@ function [type,orb,err] = br12_bound_corr(y0,orb0,opts,sys,bifs)
 %   opts: numerical method parameters
 %    -> pi: indicies of continuation parameters (length of 1 or 2)
 %    -> psa: pseudo-arclength method parameters 
+%      -> stab_eval: if true evaluate the stability of all found orbits
+%           (default true, can be turned of for reduced calculation times)
 %    -> c_logs: log iterations in initial correction steps (default true)
 %      -> ds0: default arclength stepsize (default 0.1)
 %      -> ds_lim: minimum and maximum allowed stepsize [ds_min ds_max]
@@ -106,7 +108,7 @@ if any(p_diff < 0,'all')
 end
 
 % Evaluate the stability of the new orbit
-if type > -2 && norm(err) < opts.nr.abstol*1e3
+if type > -2 && norm(err) < opts.nr.abstol*1e3 && opts.psa.stab_eval
     [orb.mu, orb.mu_crit, ~] = orb_stab(orb,sys);
 else
     orb.mu = []; orb.mu_crit = [];
