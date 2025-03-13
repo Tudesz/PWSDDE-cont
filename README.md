@@ -7,6 +7,8 @@ Periodic orbit continuation routines for piecewise-smooth delay differential equ
 - [COCO](https://sourceforge.net/projects/cocotools/) *"core"* compatible definition of the governing MP-BVP and its monitor functions
 - limited treatment of neutral delays (WARNING: forward propagation of discontinuities may lead to major interpolation errors!)
 
+[![Open in MATLAB Online](https://www.mathworks.com/images/responsive/global/open-in-matlab-online.svg)](https://matlab.mathworks.com/open/github/v1?repo=Tudesz/PWSDDE-cont&file=bld_osc_demo.m)
+
 ## Installation
 - Clone the repository or download the zip file containing the codes and place them in an arbitrary folder.
 - Add this folder to the matlab path as: addpath(genpath("<folder_name>")).
