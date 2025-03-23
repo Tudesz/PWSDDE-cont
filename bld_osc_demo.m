@@ -3,8 +3,7 @@ warning off backtrace
 %% Example continuation problem of 1 a DoF bilinear delayed oscillator
 % considering harmonic excitation and delayed velocity feedback control
 % using a nondimensionalized form of the governing equation of motion
-% further details on the model are available in:
-% https://doi.org/10.1016/j.cnsns.2019.105095
+% further details on the model at: https://doi.org/10.1016/j.cnsns.2019.105095
 
 % Dependencies
 addpath(genpath('_toolbox'))
@@ -55,7 +54,7 @@ sys.e = 'bldosc_e';     % event functions
 sys.tau = 'bldosc_tau'; % time delays
 sys.tau_no = 1;         % number of time delays
 sys.mode_no = 2;        % number of modes
-sys.event_no = 3;       % number of possible events
+sys.event_no = 3;       % number of considered events
 
 
 %% Finding a periodic orbit
@@ -107,7 +106,7 @@ branch2 = br12_cont_adapt(orb1,sys,opts2);
 %% Follow a grazing event in 2 parameters
 
 % Initial Grazing point (converted to new solution signature) 
-orb_gr = orb_convert(branch1(end),sys,0); % only 1 event at the end/beginning
+orb_gr = orb_convert(branch1(end),sys,0,[],20); % only 1 event at the end/beginning
 % figure(); plot_orb(orb_gr,sys,'bldosc_p'); title('Grazing orbit');
 
 % Correct grazing orbit
@@ -124,13 +123,41 @@ optsgr.stop.p_lim = [1 5; -inf inf]; % [tau_min tau_max; k_min k_max];
 optsgr.psa.ds_lim = [1e-3 0.1]; % stepsize limits [ds_min ds_max]
 optsgr.psa.ds0 = 0.05; % starting stepsize
 branch_gr1 = br12_cont_adapt(orb2,sys,optsgr,bifs);
-% figure(); plot_br2_par(branch_gr1,cont_opts.psa.pi,2)
-% anim_br_spectrum(branch_gr1,'test.avi')
+% figure(); plot_br2_par(branch_gr1,optsgr.pi,2)
 
 % Fixed stepsize continuation run
 % optsgr = br12_opts([1,2],0.1,100); % position of tau and k in p0, ds, n_step
 % optsgr.stop.p_lim = [1 5; -inf inf]; % [tau_min tau_max; k_min k_max];
 % branch_gr1 = br12_cont_fix(orb2,sys,optsgr,bifs);
+
+
+%% Follow a grazing orbits considering double events
+% 
+% % Initial Grazing point (converted to new solution signature)
+% sys2 = sys; sys2.event_no = 4; % append a dummy event for tracking smooth orbits
+% gr_cond = @(x,xd,p) 1 - max(x(1,:)); % add a monitor function to validate grazing
+% sys2.q = @(y,orb,sys,pind) po_f_ev(y,orb,sys,pind,gr_cond); % append monitor function
+% t_guess = [0.0 3.940 7.868]; % guess for event times [0.0 3.940 7.868]
+% orb_gr = orb_convert(branch1(end),sys2,t_guess); % two velocity zero crossings
+% % figure(); plot_orb(orb_gr,sys2,'bldosc_p'); title('Grazing orbit');
+% 
+% % Correct grazing orbit (grazing defined as a double event)
+% orb_gr.sig = [4 4]; % new solution signature with no mode transition
+% bifs.type = 3;  % user defined bifurcation
+% bifs.ind = 2;   % at the second (grazing) event
+% bifs.pi = 1;    % free paramter needed to locate the bifurcation point
+% bifs.f = @(U,T,p,orb,sys,del,bif_ind,type) ...
+%     add_event_func(U,T,p,orb,sys,del,bif_ind,type,3);
+% orb2 = orb_corr(orb_gr,sys2,[],bifs); % append the third event condition to MP-BVP
+% % figure(); plot_orb(orb2,sys,'bldosc_p')
+% 
+% % Adaptive stepsize continuation run
+% optsgr = br12_opts([1,2]); % position of tau and k in p0
+% optsgr.stop.p_lim = [1 5; -inf inf]; % [tau_min tau_max; k_min k_max];
+% optsgr.psa.ds_lim = [1e-3 0.2]; % stepsize limits [ds_min ds_max]
+% branch_gr1 = br12_cont_adapt(orb2,sys2,optsgr,bifs);
+% % figure(); plot_br2_par(branch_gr1,optsgr.pi,2)
+% % anim_br_spectrum(branch_gr1,'test.avi')
 
 
 %% Plot results
@@ -144,7 +171,7 @@ plot_br2_par(branch_gr1,pind); hold off
 xlabel('$\tau$'); ylabel('$k$'); title('Continuation results')
 
 % combined bifurcation diagram in 3D
-% uind = 2;
+% uind = 1;
 % figure();
 % plot_br2_3D(branch1,pind,uind,2); hold on
 % plot_br2_3D(branch2,pind,uind,2);

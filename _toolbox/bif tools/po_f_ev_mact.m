@@ -24,7 +24,8 @@ N = length(orb.sig);    % number of segments
 
 % Unpack solution vector
 lp = length(pind);
-p0 = pl_insert(orb.p,y(end-lp+1:end),pind);
+p0 = orb.p; 
+p0(pind) = y(end-lp+1:end);
 Ti0 = y(end-N-lp+1:end-lp);
 
 % Evaluate current and delayed terms
