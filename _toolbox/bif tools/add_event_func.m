@@ -85,10 +85,10 @@ switch type
         X = ev_cond(3,0);
         % Account for delayed terms
         for k = 1:sys.tau_no
-            fi_k = squeeze(fi_tau(sl_ind*M,k,:)).';
+            fi_k = squeeze(fi_tau(bif_ind*M,k,:)).';
             dfi_k = (D0.'*fi_k.').';
-            i_k = (i_tau(sl_ind*M,k)-1)*M*n+1:i_tau(sl_ind*M,k)*M*n;
-            dtau_k = -1/T(i_tau(sl_ind*M,k))*tau_f(k,3);
+            i_k = (i_tau(bif_ind*M,k)-1)*M*n+1:i_tau(bif_ind*M,k)*M*n;
+            dtau_k = -1/T(i_tau(bif_ind*M,k))*tau_f(k,3);
             X = X + kron(ev_cond(2,k),dfi_k)*U(i_k)*dtau_k;
         end
 end

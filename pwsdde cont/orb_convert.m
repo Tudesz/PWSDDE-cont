@@ -35,7 +35,7 @@ function orb_mod = orb_convert(orb,sys,guess,res,M_mod)
 %   err: MP-BVP error at its last evaluation
 
 % Initialization, unpack orbit structure
-if nargin < 4
+if nargin < 4 || isempty(res)
     res = 1000; % default search resolution
 end
 if nargin < 5

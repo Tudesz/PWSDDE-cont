@@ -108,8 +108,8 @@ branch1 = br12_cont_adapt(orb1,sys,opts1);
 % opts1a = br12_opts(2,-0.2,100); % index of om, ds, n_step
 % opts1a.stop.int_gr = false; % do not stop at false grazing events
 % branch1a = br12_cont_fix(orb1c,sys,opts1);
-% opts1b = opts1; opts2.ds = 0.5; % flip the continuation direction
-% branch1b = br12_cont_fix(orb1c,sys,opts2);
+% opts1b = br12_opts(2,0.5,100); % flip continuation direction
+% branch1b = br12_cont_fix(orb1c,sys,opts1b);
 % branch1 = cat(1,flip(branch1a),branch1b); % concatenate the two branches
 
 
@@ -117,7 +117,6 @@ branch1 = br12_cont_adapt(orb1,sys,opts1);
 
 % project sliding orbit to a new mesh to follow sticking orbits
 t_guess = [0.0 0.163 2.196 4.349 4.446 8.667]; % guess for adaptive branch1
-% t_guess = [0.0 0.2 2.207 4.324 4.542 8.704]; % guess for fixed step branch1
 orb2 = orb_convert(branch1(1),sys,t_guess); % orbit conversion
 % orb2 = orb_convert(branch1(1),sys,6); % with manual event selection
 orb2.sig = [4 7 3 6 5]; % new solution signature (with sticking events)
@@ -142,7 +141,6 @@ branch_s1 = br12_cont_adapt(orb2,sys,opts_s1);
 
 % Change solution signature to allow going further
 orb3 = branch_s1(1); % initial orbit from adaptive branch_s1
-% orb3 = branch_s1(end); % initial orbit from fixed step branch_s1
 orb3.T(orb3.T<0)=-orb3.T(orb3.T<0); % remove negative segment lengths
 orb3.sig = [4 3 9 6 5]; % update the solution signature
 orb3c = orb_corr(orb3,sys);
@@ -166,7 +164,6 @@ branch_s2 = br12_cont_adapt(orb3c,sys,opts_s2);
 
 % find and correct initial sliding point
 orb_sl = branch1(1); % initial orbit from adaptive branch1
-% orb_sl = branch1(end); % initial orbit from fixed step branch1
 bifs.type = 2;  % sliding bifurcation
 bifs.ind = 2;   % at the second event (also third due to simmetry, but one is enough)
 bifs.pi = 2;    % free paramter needed to locate the bifurcation point
