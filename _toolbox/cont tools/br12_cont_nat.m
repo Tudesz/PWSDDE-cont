@@ -191,7 +191,7 @@ for i = 2:np+1
         branch(i).mu = orb_temp.mu;
         branch(i).mu_crit = orb_temp.mu_crit;
         if isfield(sys,'q')
-            branch(ii).q = orb_temp.q;
+            branch(i).q = orb_temp.q;
         end
         % dummy solution tangent
         norm_diff = norm([branch(i).U; branch(i).T]) ...

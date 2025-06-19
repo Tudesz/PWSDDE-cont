@@ -42,7 +42,8 @@ switch annotate
         pi = p; pi(abs(mu_c)<=0) = NaN;
         plot(p,un,'b',pi,un,'r');
 end
-xlabel('$\lambda$'); ylabel('$|u|$'); box on;
+xlabel(sprintf('$\\lambda_%i$',p_i)); 
+ylabel('$|u|$'); box on;
 
 end
 
