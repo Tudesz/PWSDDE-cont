@@ -45,7 +45,8 @@ switch annotate
         pi = p; pi(:,abs(mu_c)<=1) = NaN;
         plot3(p(1,:),p(2,:),Un,'b',pi(1,:),pi(2,:),Un,'r');
 end
-xlabel('$\lambda_1$'); ylabel('$\lambda_2$');
+xlabel(sprintf('$\\lambda_%i$',p_i(1))); 
+ylabel(sprintf('$\\lambda_%i$',p_i(2)));
 switch annotate
     case {0,1,4,5}
         zlabel('$|u|$');

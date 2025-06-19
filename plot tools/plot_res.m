@@ -25,7 +25,7 @@ for i=1:length(res)
     if nargin<2
         plot(res(i).x,res(i).y.','Color',color);
     elseif ischar(ind) && nargin>2
-        [px,py] = feval(ind,res(i).x,res(i).y,p);
+        [px,py,xlab,ylab] = feval(ind,res(i).x,res(i).y,p);
         plot(px,py,'Color',color);
     else
         plot(res(i).x,res(i).y(ind,:),'Color',color);
@@ -37,7 +37,7 @@ end
 if nargin<2 || ~ischar(ind)
    xlabel('$t$');  ylabel('$x$'); 
 else
-    xlabel('$f_1(t,x)$'); ylabel('$f_2(t,x)$');
+    xlabel(xlab); ylabel(ylab);
 end
 box on; hold off
 

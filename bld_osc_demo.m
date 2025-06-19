@@ -56,6 +56,9 @@ sys.tau_no = 1;         % number of time delays
 sys.mode_no = 2;        % number of modes
 sys.event_no = 3;       % number of considered events
 
+% add a monitor function for tracking the mean kinetic energy
+% sys.q = 'bldosc_mon_Ek_mean'; % q = int(1/2*x2(t)^2)/T
+
 
 %% Finding a periodic orbit
 
@@ -177,6 +180,15 @@ xlabel('$\tau$'); ylabel('$k$'); title('Continuation results')
 % plot_br2_3D(branch2,pind,uind,2);
 % plot_br2_3D(branch_gr1,pind,uind,2); hold off
 % xlabel('$\tau$'); ylabel('$k$'); zlabel('$|x|$'); title('Continuation results')
+
+% mean kinetic energy (if sys.q is defined)
+% qind = 1;
+% figure();
+% plot_br2_qmon(branch1,pind,qind,2); hold on
+% plot_br2_qmon(branch2,pind,qind,2);
+% plot_br2_qmon(branch_gr1,pind,qind,0); hold off
+% xlabel('$\tau$'); ylabel('$k$'); zlabel('$||E_{\mathrm{k}}||$'); 
+% title('Monitor function values')
 
 
 %% Validate orbit stability via simulation
