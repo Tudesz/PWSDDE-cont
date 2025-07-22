@@ -15,13 +15,14 @@ function [orb,res] = sim_ns_dde(y0,p,sys,o_init,opts)
 %   is returned)
 %    -> N: number of events in the periodic orbit
 %    -> M: Chebyshev mesh resolution
+%    -> N0: index of the zeroth event (default 2*N)
 %   opts: solver and data processing options
 %    -> t_end: end time of simulation (default 1000)
 %    -> m0: starting mode of simulation (default 1)
 %    -> h_act: indicies of active events (default all)
 %    -> i_max: maximum iteration number, event counter (default 1000)
-%    -> calc_delayed: if true also include the delayed terms in the output
-%       structure res (default true)
+%    -> calc_delayed: if true also include data on the delayed terms in 
+%       the res output structure: feilds Z, hist0, and hist1 (default true)
 % Output:
 %   orb: periodic orbit data structure (based on the simulation guess)
 %    -> sig: sloution signature (event list)
@@ -31,10 +32,16 @@ function [orb,res] = sim_ns_dde(y0,p,sys,o_init,opts)
 %    -> n: number of degrees of freedom
 %    -> M: Chebyshev mesh resolution
 %   res: DDE solver output structure for troubleshooting and visualization
+%       including additional fields such as:
+%    -> mode: active mode of the vector field
+%    -> event: executed event at the end of the solution segment
+%    -> Z: delayed instances of the solution y(t-tau) at sol.x
+%    -> hist0: history function at the beginning of the segment (t and u)
+%    -> hist1: history function at the end of the segment (t and u)
 
 % Initialization
 if nargin<5
-    % if none of the solver options are not defined
+    % if none of the solver options are defined
     opts.i_max = 1000; % default maximum iteration number
     opts.h_act = true(1,sys.event_no); % by default all events are active
     opts.m0 = 1; % by default start with mode 1
@@ -57,6 +64,11 @@ else
         opts.calc_delayed = true;
     end
 end
+if isempty(o_init) || ~isfield(o_init,'M')
+    Mh = 20; % default resolution of hist0 and hist1
+else
+    Mh = o_init.M;
+end
 iter = 1; % iteration counter (safety switch)
 ti = zeros(opts.i_max,1); % starting times
 mi = zeros(opts.i_max,1); % vector field modes
@@ -73,20 +85,21 @@ for i = 1:sys.tau_no
     tau(i) = feval(sys.tau,p,i,2); % time delays
     tau_type(i) = feval(sys.tau,p,i,1); % delay types
 end
+tau_max = max(tau); % maximal time delay
 
 % Run simulation loop
 if sys.tau_no == 0
     res = repmat(struct('solver',[],'extdata',[],...
         'x',[],'y',[],'xe',[],'ye',[],'ie',[],'stats',[],'idata',[],...
-        'mode',[],'Z',[]),1,opts.i_max);
+        'mode',[],'event',[],'Z',[],'hist0',[],'hist1',[]),1,opts.i_max);
 elseif max(tau_type)==1
     res = repmat(struct('solver',[],'history',[],'discont',[],...
         'x',[],'y',[],'xe',[],'ye',[],'ie',[],'stats',[],'yp',[],...
-        'mode',[],'Z',[]),1,opts.i_max);
+        'mode',[],'event',[],'Z',[],'hist0',[],'hist1',[]),1,opts.i_max);
 else
     res = repmat(struct('solver',[],'history',[],'x',[],'y',[],...
         'xe',[],'ye',[],'ie',[],'stats',[],'yp',[],'IVP',[],...
-        'mode',[],'Z',[]),1,opts.i_max);
+        'mode',[],'event',[],'Z',[],'hist0',[],'hist1',[]),1,opts.i_max);
 end
 fprintf('\nRun simulation routine for non-smooth DDEs\n')
 while ti(iter)<opts.t_end
@@ -114,7 +127,10 @@ while ti(iter)<opts.t_end
         sol = ddensd(nddefun,dely,delyp,y_hist,[ti(iter) opts.t_end],solver_opts);
     end
     sol.mode = mi(iter);
+    sol.event = [];
     sol.Z = [];
+    sol.hist0 = [];
+    sol.hist1 = [];
     res(iter) = sol;
     ti(iter+1) = sol.x(end);
 
@@ -134,6 +150,22 @@ while ti(iter)<opts.t_end
         res(iter).Z = Z;
     end
 
+    % Include initial and final history function
+    if opts.calc_delayed && sys.tau_no>0
+        th0 = cheb_mesh(Mh,sol.x(1)+[-tau_max 0]);
+        th1 = cheb_mesh(Mh,sol.x(end)+[-tau_max 0]);
+        res(iter).hist0.t = th0;
+        res(iter).hist1.t = th1;
+        uh0 = zeros(n,Mh);
+        uh1 = zeros(n,Mh);
+        for i = 1:Mh
+            uh0(:,i) = history_func(th0(i),sol.y(:,end),y0,res,ti);
+            uh1(:,i) = history_func(th1(i),sol.y(:,end),y0,res,ti);
+        end
+        res(iter).hist0.u = uh0;
+        res(iter).hist1.u = uh1;
+    end
+
     
     % Find which event occured
     if isempty(sol.ie) || sol.x(end) == opts.t_end
@@ -142,6 +174,7 @@ while ti(iter)<opts.t_end
         h_ind = 1:length(opts.h_act);
         ei_temp = intersect(sol.ie,h_ind(1==opts.h_act),'stable');
         ei(iter+1) = ei_temp(end); 
+        res(iter).event = ei(iter+1);
     end
         
     % Update solution
@@ -180,8 +213,14 @@ end
 res = res(1:iter);
 
 if ~isempty(o_init)
+    % Starting event index
+    if ~isfield(o_init,'N0')
+        N0 = 2*o_init.N;
+    else
+        N0 = o_init.N0;
+    end
     % Find periodic solution
-    i0 = iter-2*o_init.N; % index of zeroth event
+    i0 = iter-N0; % index of zeroth event
     t = zeros(o_init.M*o_init.N,1); % time mesh
     u = zeros(n,o_init.M*o_init.N); % solution vectors
     orb.sig = zeros(1,o_init.N); % solution signature
@@ -221,7 +260,7 @@ function y = history_func(t,y1,y0,sols,tis)
     if t<=tis(1)
         % use original history function
         y = y0(t);
-    elseif t==max(tis)
+    elseif t>=max(tis)
         % return mapped new value for t=ti
          y = y1; 
     else
