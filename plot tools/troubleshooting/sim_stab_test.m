@@ -14,8 +14,8 @@ function [sim, orb_p] = sim_stab_test(orb,sys,opts,prt,orb_eval)
 %    -> mode_no: number of distinct vector field modes
 %    -> event_no: number of disctinc events
 %   opts: solver and data processing options
-%    -> t_end: end time of simulation (default 1000)
-%    -> m0: starting mode of simulation (default 1)
+%    -> t_end: end time of simulation (default sum(T))
+%    -> m0: starting mode of simulation (default exit mode of e_N)
 %    -> h_act: indicies of active events (default all)
 %    -> i_max: maximum iteration number, event counter (default 1000)
 %    -> calc_delayed: if true also include the delayed terms in the output
@@ -34,6 +34,15 @@ if nargin < 5
     orb_eval = false; % don't evaluate orb_p by default
 end
 
+% default simulation options
+if nargin < 3 || isempty(opts) || ~isfield(opts,'t_end')
+    opts.t_end = sum(orb.T);
+end
+if ~isfield(opts,'m0')
+    opts.m0 = feval(sys.e,[],[],[],orb.sig(end),7,2); % exit mode of the last event
+end
+
+
 % Initialize orbit parameters
 U = orb.U;
 p0 = orb.p;
@@ -41,7 +50,7 @@ Tj = orb.T;
 
 % apply some perturbation
 if nargin>3 && ~isempty(prt)
-    if length(prt) == 1
+    if isscalar(prt)
         U = U + prt*norm(U)*randn(size(U));
     elseif length(prt) == length(U)
         U = U + prt;

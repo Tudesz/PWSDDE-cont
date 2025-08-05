@@ -39,6 +39,7 @@ if nargin<2 || ~ischar(ind)
 else
     xlabel(xlab); ylabel(ylab);
 end
+axis('padded')
 box on; hold off
 
 end

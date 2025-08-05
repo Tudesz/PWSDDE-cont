@@ -25,7 +25,7 @@ U = orb.U;
 T = orb.T;
 
 % apply some perturbation
-if length(prt) == 1
+if isscalar(prt)
     yp = [prt*norm(U)*randn(size(U)); zeros(size(T))];
 elseif length(prt) == length(U)
     yp = [prt; zeros(size(T))];
