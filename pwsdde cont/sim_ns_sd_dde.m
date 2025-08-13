@@ -19,6 +19,7 @@ function [orb,res] = sim_ns_sd_dde(y0,p,sys,o_init,opts)
 %    -> M: Chebyshev mesh resolution
 %    -> N0: index of the zeroth event (default 2*N)
 %   opts: solver and data processing options
+%    -> t_start: start time of the simulation (default 0)
 %    -> t_end: end time of simulation (default 1000)
 %    -> m0: starting mode of simulation (default 1)
 %    -> h_act: indicies of active events (default all)
@@ -44,7 +45,8 @@ if nargin<5
     opts.i_max = 1000; % default maximum iteration number
     opts.h_act = true(1,sys.event_no); % by default all events are active
     opts.m0 = 1; % by default start with mode 1
-    opts.t_end = 1000; % default simulation time
+    opts.t_start = 0; % default simulation start time
+    opts.t_end = 1000; % default simulation completion time
     opts.calc_delayed = true; % also return the delayed terms in res by default
 else
     if ~isfield(opts,'i_max')
@@ -56,6 +58,9 @@ else
     if ~isfield(opts,'m0')
         opts.m0 = 1;
     end
+    if ~isfield(opts,'t_start')
+        opts.t_start = 0;
+    end
     if ~isfield(opts,'t_end')
         opts.t_end = 1000;
     end
@@ -64,7 +69,7 @@ else
     end
 end
 iter = 1; % iteration counter (safety switch)
-ti = zeros(opts.i_max,1); % starting times
+ti = opts.t_start*ones(opts.i_max,1); % starting times
 mi = zeros(opts.i_max,1); % vector field modes
 ei = zeros(opts.i_max,1); % encountered events
 n = length(y0(0));  % system dimension
