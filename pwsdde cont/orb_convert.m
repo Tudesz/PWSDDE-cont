@@ -32,7 +32,6 @@ function orb_mod = orb_convert(orb,sys,guess,res,M_mod)
 %    -> p: parameter vector
 %    -> n: number of degrees of freedom
 %    -> M: Chebyshev mesh resolution
-%   err: MP-BVP error at its last evaluation
 
 % Initialization, unpack orbit structure
 if nargin < 4 || isempty(res)

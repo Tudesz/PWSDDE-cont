@@ -139,6 +139,9 @@ dy_start = 1/norm(dy)*dy; % starting tangent vector
 rt0 = tic;
 if isfield(sys,'q') % user defined monitor functions
     branch(i0).q = feval(sys.q,y_start,orb,sys,pind);
+    if isfield(orb,'q')
+        orb = rmfield(orb,'q');
+    end
 end
 
 % Cover both continuation directions

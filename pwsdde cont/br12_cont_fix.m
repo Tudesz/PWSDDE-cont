@@ -140,6 +140,9 @@ dy = 1/norm(dy)*dy; % starting tangent vector
 rt0 = tic;
 if isfield(sys,'q')
     branch(1).q = feval(sys.q,y0,orb,sys,pind);
+    if isfield(orb,'q')
+        orb = rmfield(orb,'q');
+    end
 end
 if lp > size(opts.stop.p_lim,1)
     p_lims = repmat(opts.stop.p_lim,2,1); % same limits used for all parameters unless specified otherwise
