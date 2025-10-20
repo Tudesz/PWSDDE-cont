@@ -25,7 +25,7 @@ for i=1:length(res)
     if nargin<2
         plot(res(i).x,res(i).y.','Color',color);
     elseif ischar(ind) && nargin>2
-        [px,py,xlab,ylab] = feval(ind,res(i).x,res(i).y,p);
+        [px,py,xlab,ylab] = feval(ind,res(i).x,res(i).y,res(i).Z,p);
         plot(px,py,'Color',color);
     else
         plot(res(i).x,res(i).y(ind,:),'Color',color);
@@ -39,6 +39,7 @@ if nargin<2 || ~ischar(ind)
 else
     xlabel(xlab); ylabel(ylab);
 end
+axis('padded')
 box on; hold off
 
 end
