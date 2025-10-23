@@ -70,8 +70,7 @@ else
 end
 
 % Forward time simulation starting from the periodic orbit
-T = sum(Tj);
-y0 = @(t) po_interp(ceil(-t/T)*T+t,U,Tj,orb.M);
+y0 = @(t) history_interp(orb,t);
 if ~isfield(sys,'sd_delay') || ~sys.sd_delay
     [orb_p,sim] = sim_ns_dde(y0,p0,sys,o_init,opts);
 else
