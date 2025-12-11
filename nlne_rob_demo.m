@@ -90,7 +90,7 @@ opts2 = opts1; % samme options as previously
 branch2 = br12_cont_adapt(orb2c,sys,opts2);
 % figure(); plot_br1_norm(branch2,opts2.pi,2);
 % figure(); plot_orb(branch2(end),sys,'nlne_rob_p');
-% anim_br_orb(branch2,sys,'nlne_rob_p','test.avi')
+% anim_br_orb(branch2,sys,'nlne_rob_p',[],'test.avi')
 
 
 %% Plot continuation results

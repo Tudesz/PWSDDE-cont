@@ -1,4 +1,4 @@
-function plot_orb(orb,sys,fs,res)
+function plot_orb(orb,sys,fs,res,ls)
 %PLOT_ORB Plot the state or the output of user defined functions over a
 % periodic orbit
 % Input:
@@ -12,11 +12,18 @@ function plot_orb(orb,sys,fs,res)
 %   sys: names of the functions that define the system
 %    -> tau: time delay and its parameter Jacobians
 %    -> tau_no: number of distinct time delays
-%   fs: functions for plotting, default: fs1(t,y)=t wrt fs2(t,y)=y
+%   fs: functions for plotting, default: fs1(t,y)=t wrt fs2(t,y)=y, if a
+%       set of indicies is given only y_i is plotted
 %   res: output interpolation resolution (default 100)
+%   ls: linestyle data forwarded to the plot function (default empty)
 
 if nargin<4
     res = 100; % default plot resolution
+end
+if nargin<5 
+    ls = {}; % no listyle data
+elseif ~iscell(ls)
+    ls = {ls};
 end
 
 % Unpack orbit data
@@ -29,8 +36,20 @@ xd1 = del1.ud;
 
 % Plot the state wrt t or the outputs of fs
 if nargin<3 || isempty(fs)
-    plot(t1,x1); hold on
-    plot(t0,x0,'k.');
+    plot(t1,x1,ls{:}); hold on
+    if isempty(ls)
+        plot(t0,x0,'k.');
+    end
+    xlabel('$t$'); ylabel('$u$');
+    for i=1:length(orb.T)+1
+        xline(sum(orb.T(1:i-1)),':k');
+    end
+    xlim('tight');
+elseif isnumeric(fs)
+    plot(t1,x1(fs,:),ls{:}); hold on
+    if isempty(ls)
+        plot(t0,x0(fs,:),'k.');
+    end
     xlabel('$t$'); ylabel('$u$');
     for i=1:length(orb.T)+1
         xline(sum(orb.T(1:i-1)),':k');
@@ -39,8 +58,12 @@ if nargin<3 || isempty(fs)
 else
     [px0,py0,xlab,ylab] = feval(fs,t0,x0,xd0,orb.p);
     [px1,py1] = feval(fs,t1,x1,xd1,orb.p);
-    plot(px1,py1,'k'); hold on
-    plot(px0,py0,'k.');
+    if isempty(ls)
+        plot(px1,py1,'k'); hold on
+        plot(px0,py0,'k.');
+    else
+        plot(px1,py1,ls{:});
+    end
     xlabel(xlab); ylabel(ylab);
     axis('padded');
 end

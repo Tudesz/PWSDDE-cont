@@ -9,5 +9,8 @@ scatter(real(mu(abs(mu)>1)),imag(mu(abs(mu)>1)),50,'rx');
 plot(real(exp(1i*(0:pi/100:2*pi))), imag(exp(1i*(0:pi/100:2*pi))),':k');
 hold off; pbaspect([1 1 1]); axis('equal'); box on;
 xlabel('$\Re$'); ylabel('$\Im$');
+[~,ic] = max(abs(mu));
+title(sprintf('$\\mu_{\\mathrm{crit}}$ = %0.3f + %0.3f i',...
+    real(mu(ic)),imag(mu(ic))));
 end
 

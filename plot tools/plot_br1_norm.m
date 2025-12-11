@@ -1,4 +1,4 @@
-function plot_br1_norm(branch,p_i,annotate)
+function plot_br1_norm(branch,p_i,annotate,ls)
 %PLOT_BR1_NORM Display continuation result norms wrt 1 continuation
 %parameter
 % Input:
@@ -9,14 +9,20 @@ function plot_br1_norm(branch,p_i,annotate)
 %    -> tg: solution tangents in norm
 %   p_i: bifurcation parameter index
 %   annotate: level of annotations on the bifurcation plot (default 1)
-%     -> 0: no extra information
+%     -> 0: no extra information (ls options are applied)
 %     -> 1: display stability and bifurcation points
 %     -> 2: display tangent vectors and number of steps (with default p_i!)
 %     -> 3: display only bifurcation points
 %     -> 4: display only stability
+%   ls: linestyle data forwarded to the plot function (default empty)
 
 if nargin<3
     annotate = 1; % display stability and bifurcation points
+end
+if nargin<4 
+    ls = {}; % no listyle data
+elseif ~iscell(ls)
+    ls = {ls};
 end
 
 % Preprocess output data
@@ -25,7 +31,7 @@ end
 % Plot results
 switch annotate
     case 0
-        plot(p,un);
+        plot(p,un,ls{:});
     case 1
         pi = p; pi(abs(mu_c)<=1) = NaN;
         plot(p,un,'b',pi,un,'r'); hold on
@@ -36,7 +42,7 @@ switch annotate
         'VerticalAlignment','bottom','HorizontalAlignment','left')
         quiver(p,un,tg(2,:),tg(1,:),0,'g')
     case 3
-        plot(p,un); hold on
+        plot(p,un,'k'); hold on
         mark_br_bifs(ibif,[p; un]);
     case 4
         pi = p; pi(abs(mu_c)<=0) = NaN;

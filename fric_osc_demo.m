@@ -101,7 +101,7 @@ opts1.stop.int_gr = false; % do not stop at false grazing events
 branch1 = br12_cont_adapt(orb1,sys,opts1);
 % figure(); plot_br1_ampl(branch1,opts1.pi,1,false);
 % figure(); plot_br1_norm(branch1,opts1.pi,2);
-% anim_br_orb(branch1,sys,'fricosc_p','test.avi')
+% anim_br_orb(branch1,sys,'fricosc_p',[],'test.avi')
 % figure(); plot_orb_events(branch1(end),sys)
 
 % Using a fixed stepsize (run 1)

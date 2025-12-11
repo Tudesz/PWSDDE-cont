@@ -1,4 +1,4 @@
-function anim_br_orb(branch,sys,fs,filename)
+function anim_br_orb(branch,sys,fs,ls,filename)
 %ANIM_BR_ORB Animate orbit shape progression along a continuation output 
 % branch
 % Input:
@@ -11,12 +11,17 @@ function anim_br_orb(branch,sys,fs,filename)
 %    -> tau: time delay and its parameter Jacobians
 %    -> tau_no: number of distinct time delays
 %   fs: functions for plotting, default: fs1(t,y)=t wrt fs2(t,y)=y
+%   ls: linestyle data forwarded to the plot function (default empty)
 %   filename: if given save .avi file with this name
 % Output:
 %   video file with the name filename.avi
 
+if nargin<4 || isempty(ls)
+    ls = {}; % no listyle data
+end
+
 % Save as video file
-if nargin>3
+if nargin>4
     myVideo = VideoWriter(filename,'Motion JPEG AVI');
     myVideo.Quality = 95; 
     myVideo.FrameRate = 10;
@@ -27,9 +32,9 @@ figure();
 for i = 1:length(branch)
     % Plot each orbit one by one
     if nargin>2 && ~isempty(fs)
-        plot_orb(branch(i),sys,fs)
+        plot_orb(branch(i),sys,fs,100,ls)
     else
-        plot_orb(branch(i),sys)
+        plot_orb(branch(i),sys,[],100,ls)
     end
     title(sprintf('Orbit: %i',i));
     drawnow

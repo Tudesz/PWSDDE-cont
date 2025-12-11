@@ -1,4 +1,4 @@
-function plot_br1_qmon(branch,p_i,q_i,annotate)
+function plot_br1_qmon(branch,p_i,q_i,annotate,ls)
 %PLOT_BR1_QMON Display a user defined monitor function value wrt 1 
 % continuation parameter
 % Input:
@@ -10,13 +10,19 @@ function plot_br1_qmon(branch,p_i,q_i,annotate)
 %   p_i: bifurcation parameter index
 %   q_i: index of the monitor function to be displayed
 %   annotate: level of annotations on the bifurcation plot (default 1)
-%     -> 0: no extra information
+%     -> 0: no extra information (ls options are applied)
 %     -> 1: display stability and bifurcation points
 %     -> 2: display only bifurcation points
 %     -> 3: display only stability
+%   ls: linestyle data forwarded to the plot function (default empty)
 
 if nargin<4
     annotate = 1; % display stability and bifurcation points
+end
+if nargin<5 
+    ls = {}; % no listyle data
+elseif ~iscell(ls)
+    ls = {ls};
 end
 
 % Preprocess output data
@@ -27,13 +33,13 @@ q_mon = q(q_i,:);
 % Plot results
 switch annotate
     case 0
-        plot(p,q_mon);
+        plot(p,q_mon,ls{:});
     case 1
         pi = p; pi(abs(mu_c)<=1) = NaN;
         plot(p,q_mon,'b',pi,q_mon,'r'); hold on
         mark_br_bifs(ibif,[p; q_mon]);
     case 2
-        plot(p,q_mon); hold on;
+        plot(p,q_mon,'k'); hold on;
         mark_br_bifs(ibif,[p; q_mon]);
     case 3
         pi = p; pi(abs(mu_c)<=1) = NaN;

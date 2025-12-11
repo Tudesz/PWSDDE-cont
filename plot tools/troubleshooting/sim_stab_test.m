@@ -51,12 +51,12 @@ Tj = orb.T;
 % apply some perturbation
 if nargin>3 && ~isempty(prt)
     if isscalar(prt)
-        U = U + prt*norm(U)*randn(size(U));
+        orb.U = U + prt*norm(U)*randn(size(U));
     elseif length(prt) == length(U)
-        U = U + prt;
+        orb.U = U + prt;
     elseif length(prt) == length(U) + length(Tj)
-        U = U + prt(1:length(U));
-        Tj = Tj + prt(length(U)+1:end);
+        orb.U = U + prt(1:length(U));
+        orb.T = Tj + prt(length(U)+1:end);
     end
 end
 

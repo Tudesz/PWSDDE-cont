@@ -1,4 +1,4 @@
-function plot_res(res,ind,p)
+function plot_res(res,ind,p,ls)
 %PLOT_RES Visualize the output of sim_ns_dde.m
 % Input:
 %   res: DDE solver output structure
@@ -6,6 +6,7 @@ function plot_res(res,ind,p)
 %   funciton is given plot according to that
 %   p: system parameter vector neccessary for the plotting function (only
 %   needed if the name of a function is passed in ind)
+%   ls: linestyle data forwarded to the plot function
 
 colors = [0 0.4470 0.7410;
     0.8500 0.3250 0.0980;
@@ -14,6 +15,12 @@ colors = [0 0.4470 0.7410;
     0.4660 0.6740 0.1880;
     0.3010 0.7450 0.9330;
     0.6350 0.0780 0.1840];
+
+if nargin<4 
+    ls = {}; % no listyle data
+elseif ~iscell(ls)
+    ls = {ls};
+end
  
 for i=1:length(res)
     ci = mod(res(i).mode,size(colors,1));
@@ -23,12 +30,12 @@ for i=1:length(res)
         color = colors(ci,:);
     end
     if nargin<2
-        plot(res(i).x,res(i).y.','Color',color);
+        plot(res(i).x,res(i).y.',ls{:},'Color',color);
     elseif ischar(ind) && nargin>2
         [px,py,xlab,ylab] = feval(ind,res(i).x,res(i).y,res(i).Z,p);
-        plot(px,py,'Color',color);
+        plot(px,py,ls{:},'Color',color);
     else
-        plot(res(i).x,res(i).y(ind,:),'Color',color);
+        plot(res(i).x,res(i).y(ind,:),ls{:},'Color',color);
     end
     if i==1
         hold on

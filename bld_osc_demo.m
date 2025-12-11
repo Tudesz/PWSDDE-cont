@@ -88,7 +88,7 @@ opts1.stop.p_lim = [3.5 5]; % [tau_min, tau_max]
 branch1 = br12_cont_adapt(orb1,sys,opts1); 
 % figure(); plot_br1_norm(branch1,opts1.pi,2);
 % figure(); plot_br1_ampl(branch1,opts1.pi,1);
-% anim_br_orb(branch1,sys,'bldosc_p','test.avi')
+% anim_br_orb(branch1,sys,'bldosc_p',[],'test.avi')
 % figure(); plot_orb_events(branch1(end),sys)
 
 % Continuation run 2) in k
@@ -208,6 +208,20 @@ xlabel('$\tau$'); ylabel('$k$'); title('Continuation results')
 % figure(); subplot(1,2,1); plot_spectrum(mu);
 % subplot(1,2,2); plot_res(res,'bldosc_p',orbp.p); hold on
 % plot_orb(orbp,sys,'bldosc_p'); hold off
+
+
+%% Advanced plotting options
+
+% Visualization of solution branches with a unique linestyle
+% ls = {'b-.','LineWidth',2};
+% figure(); plot_br1_ampl(branch1,1,1,0,ls);
+% figure(); plot_br1_norm(branch1,1,0,ls);
+% figure(); plot_br2_3D(branch1,[1 2],1,2,ls);
+% figure(); plot_br2_par(branch_gr1,[1 2],0,ls);
+% figure(); plot_orb(orb1,sys,'bldosc_p',100,ls)
+% ms = {'rd','filled'};
+% figure(); plot_br2_3D(branch_gr1,[1 2],1,0,ls); hold on
+% plot_bif_points(branch_gr1,[1 2],0,4,0,ms); % mark only boundary points
 
 
 %% Recreate the continuation results using COCO
